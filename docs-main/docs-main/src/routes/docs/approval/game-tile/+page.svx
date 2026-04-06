@@ -1,0 +1,120 @@
+---
+title: Game Tile
+description: How to create your game tile using the built-in Tile Editor on the Stake Engine dashboard
+order: 2
+badge: New
+---
+
+<script>
+import Callout from '$lib/components/docs/Callout.svelte';
+</script>
+
+# Game Tile
+
+Game tiles are created directly in the Stake Engine dashboard using the built-in **Tile Editor**. You no longer need to submit separate assets with your game - upload your images, arrange the composition, and save.
+
+## Provider Logo
+
+Your provider logo is configured once in your team's **Branding** settings and applied automatically to all game tiles. You don't need to include it with each game submission.
+
+Navigate to **Team Settings → Branding** to upload your logo.
+
+![Provider Logo Settings](/docs-content/provider-logo.png)
+
+- File format: **PNG**, **JPG**, or **GIF** up to **10 MB**
+- **Square ratio** recommended - the logo is displayed at small sizes on tiles
+- Upload via drag and drop or the file picker, then click **Upload photo**
+- The logo is displayed publicly on stake.com alongside your game tiles
+
+<Callout type="tip">
+
+Use a logo with a transparent background and enough padding so it remains legible at small tile sizes.
+
+</Callout>
+
+## Tile Editor
+
+The Tile Editor is available on the game page on click to thumbnail (pen icon after hover on current thumbnail).
+
+![Tile Editor](/docs-content/tile-editor.jpg)
+
+The editor lets you compose the final tile from individual layers:
+
+### Background Image
+- An environmental background that shows the world of the game
+- Upload a high-resolution **PNG** or **JPG** file
+- Use the **Lighten / Darken** slider to adjust brightness - the editor includes a **Brightness Analysis** that warns if the image is too dark
+
+### Foreground Element
+- A feature character or key item that represents the game
+- Upload a high-resolution **PNG** with a transparent background
+- Position and scale it within the tile using drag and drop
+
+### Gradient
+- Controls the gradient overlay between the background and the game title area
+- Helps ensure the title text remains readable against the background
+
+### Game Title
+- The title text displayed on the tile
+- Configurable font, size, and position
+
+## Editor Controls
+
+| Control | Description |
+|---------|-------------|
+| **Snapping** | Snap elements to grid for precise alignment |
+| **Clip Overflow** | Crop elements that extend beyond the tile boundary |
+| **Guidelines** | Show safe-zone and key focus area guides |
+| **Download** | Export the composed tile as an image |
+| **Save** | Save the tile to the game record |
+
+---
+
+## Thumbnail Guidelines
+
+Follow these guidelines to ensure your game tile passes the approval process. Tiles that don't meet these requirements will be rejected.
+
+### Imagery
+
+![Imagery Guidelines](/thumbnail/imagery.jpg)
+
+Your tile is composed from a **background** and a **main object** (foreground character/symbol):
+
+- **Background must be brighter than the Stake platform** - dark backgrounds blend into the site and make the tile invisible
+- **Avoid dark colours around the edges** - edge colours should not blend into the Stake background
+- Both background and foreground images must be **bright and engaging**
+- **Enlarge characters and symbols to fill as much of the key focus area as possible** - use the editor guidelines (red box) to align the focus point of your foreground element
+- **Do not include wording or multipliers** on either the background or foreground image - text is handled separately by the title layer
+
+<Callout type="warning">
+
+Tiles with dark edges, low-contrast backgrounds, or text/multipliers baked into the imagery will be rejected.
+
+</Callout>
+
+### Gradient
+
+![Gradient Guidelines](/thumbnail/gradient.jpg)
+
+The gradient overlay sits between the background and the title text:
+
+- **Pick a prominent colour that already exists on the tile** - the gradient should feel like a natural extension of the artwork
+- The gradient needs to be **light** and help **enhance the text** so it's easier to read
+- **Make sure the text remains readable** - avoid bright yellows, greens, or blues as gradient colours, as they reduce text legibility
+- The gradient should not overpower the imagery - it's there to support readability, not dominate the composition
+
+### Text
+
+![Text Guidelines](/thumbnail/text.jpg)
+
+The title text is the primary identifier for your game on the tile:
+
+- Text must always **fit within the height of the guide** - do not exceed the text area boundaries
+- **Fill as much of the text box width as possible** - small, centred text with large margins looks weak at thumbnail sizes
+- A maximum of **2 text sizes** per thumbnail (e.g. game name large, subtitle smaller)
+
+<Callout type="tip">
+
+Preview your tile at different sizes before saving. What looks good at full resolution may lose detail when displayed as a small thumbnail in the lobby.
+
+</Callout>

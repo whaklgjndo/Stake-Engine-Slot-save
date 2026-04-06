@@ -1,0 +1,17 @@
+{
+	"extends": [
+		"config-ts/base.json",
+		"./.svelte-kit/tsconfig.json"
+	],
+	"compilerOptions": {
+		"ignoreDeprecations": "6.0"
+	},
+	"include": [
+		"."
+	],
+	"exclude": [
+		"dist",
+		"build",
+		"node_modules"
+	]
+}

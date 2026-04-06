@@ -1,0 +1,11 @@
+*/.pyc
+*.egg-info/
+*.pyc
+*.cpython
+*.csv
+.vscode/settings.json
+*.DS_Store
+/*.env
+*.json
+__pycache__/
+.DS_Store

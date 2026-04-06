@@ -1,0 +1,164 @@
+---
+title: Quality Rankings
+description: Fractional rating process, quality ranking tiers, promotion visibility, and category placement guidelines.
+order: 6
+---
+
+<script>
+import Callout from '$lib/components/docs/Callout.svelte';
+import RatingCalculator from '$lib/components/docs/RatingCalculator.svelte';
+</script>
+
+# Game Quality Rankings
+
+All games submitted to Stake Engine receive a Quality Ranking from **0** to **3** stars. This ranking is determined through a **fractional rating process** involving multiple anonymous reviewers and directly affects a game's visibility and positioning eligibility.
+
+Games must achieve a minimum average rating of **1 star** to be approved for publication. Games that fall below this threshold will not be published - see [Minimum Quality Threshold](#minimum-quality-threshold) below.
+
+<Callout type="info">
+
+Each game is independently evaluated by **3 anonymous reviewers** who each select a score from a fixed fractional scale (0 to 3, in increments of ~0.33). The final star rating is the rounded average of all three scores.
+
+</Callout>
+
+## Rating Process
+
+When a game is submitted for review, it is assigned to **three independent reviewers**. Each reviewer evaluates the game anonymously and submits a **fractional score** from the following fixed scale:
+
+> **0** · 0.33 · 0.67 · **1** · 1.33 · 1.67 · **2** · 2.33 · 2.67 · **3**
+
+Reviewers select one of these 10 values - they cannot enter arbitrary decimals. The final star rating is then calculated as follows:
+
+1. **Three anonymous reviews** - each reviewer picks a score from the scale above based on their assessment of the game's quality, creativity, and polish.
+2. **Average** - the three scores are averaged to produce a single fractional value.
+3. **Round** - the average is rounded to the nearest whole number to determine the final star tier (0, 1, 2, or 3).
+
+<Callout type="danger">
+
+If the average score is **below 1.0**, the game receives a **0-star rating** and is **not approved** for publication - regardless of rounding. An average of 0.67 does not round up to 1; it is treated as below the minimum threshold.
+
+</Callout>
+
+**Example:**
+
+| Reviewer | Score |
+|----------|-------|
+| Reviewer A | 2.33 |
+| Reviewer B | 2.33 |
+| Reviewer C | 3.00 |
+| **Average** | **(2.33 + 2.33 + 3.00) / 3 = 2.55** |
+| **Final Rating** | **Rounds to 3 Stars** |
+
+This fractional approach ensures that the final rating reflects a fair and balanced consensus rather than a single opinion.
+
+### Try It Yourself
+
+<RatingCalculator />
+
+## Ranking Tiers
+
+<div class="not-prose space-y-4 my-6">
+
+<div class="rounded-lg border border-yellow-500/30 bg-yellow-500/5 p-5">
+  <div class="mb-3 flex items-center gap-3">
+    <div class="flex items-center gap-0.5" role="img" aria-label="3 stars">
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21l-.59-3.43"/><path d="M18.42 12.76 22 9.27l-6.91-1L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+    </div>
+    <span class="text-lg font-semibold text-yellow-300">3 Stars</span>
+  </div>
+  <p class="mb-3 text-sm text-zinc-300">Awarded only to studio-quality games showing exceptional creativity, uniqueness, and attention to detail.</p>
+  <div class="rounded-md bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400">
+    <span class="font-medium text-zinc-300">Visibility:</span> Optimal positioning - eligible for prominent display in Burst Games, Stake Exclusives, and the <em>featured</em> section of New Releases.
+  </div>
+</div>
+
+<div class="rounded-lg border border-zinc-700 bg-zinc-800/30 p-5">
+  <div class="mb-3 flex items-center gap-3">
+    <div class="flex items-center gap-0.5" role="img" aria-label="2 stars">
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21l-.59-3.43"/><path d="M18.42 12.76 22 9.27l-6.91-1L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+    </div>
+    <span class="text-lg font-semibold text-zinc-200">2 Stars</span>
+  </div>
+  <p class="mb-3 text-sm text-zinc-300">Given to games that show considerable creativity or originality. While they may lack polish compared to more established studios, they still demonstrate strong development quality and attention to detail.</p>
+  <div class="rounded-md bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400">
+    <span class="font-medium text-zinc-300">Visibility:</span> Can appear in Burst Games or Stake Exclusives if driven by user popularity. Placement in New Releases depends on space and demand.
+  </div>
+</div>
+
+<div class="rounded-lg border border-zinc-700 bg-zinc-800/30 p-5">
+  <div class="mb-3 flex items-center gap-3">
+    <div class="flex items-center gap-0.5" role="img" aria-label="1 star">
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21l-.59-3.43"/><path d="M18.42 12.76 22 9.27l-6.91-1L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+    </div>
+    <span class="text-lg font-semibold text-zinc-200">1 Star</span>
+  </div>
+  <p class="mb-3 text-sm text-zinc-300">Games of lower polish that still meet publishing requirements.</p>
+  <div class="rounded-md bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400">
+    <span class="font-medium text-zinc-300">Visibility:</span> Published with limited visibility. Always placed at the bottom of New Releases. Not included in promotional categories unless driven by exceptional user demand.
+  </div>
+</div>
+
+<div class="rounded-lg border border-red-500/30 bg-red-500/5 p-5">
+  <div class="mb-3 flex items-center gap-3">
+    <div class="flex items-center gap-0.5" role="img" aria-label="0 stars">
+      <svg class="h-5 w-5 text-yellow-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8.34 8.34 2 9.27l5 4.87L5.82 21 12 17.77 18.18 21l-.59-3.43"/><path d="M18.42 12.76 22 9.27l-6.91-1L12 2l-1.44 2.91"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+      <svg class="h-5 w-5 text-zinc-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11.525 2.295a.53.53 0 0 1 .95 0l2.31 4.679a2.123 2.123 0 0 0 1.595 1.16l5.166.756a.53.53 0 0 1 .294.904l-3.736 3.638a2.123 2.123 0 0 0-.611 1.878l.882 5.14a.53.53 0 0 1-.771.56l-4.618-2.428a2.122 2.122 0 0 0-1.973 0L6.396 21.01a.53.53 0 0 1-.77-.56l.881-5.139a2.122 2.122 0 0 0-.611-1.879L2.16 9.795a.53.53 0 0 1 .294-.906l5.165-.755a2.122 2.122 0 0 0 1.597-1.16z"/></svg>
+    </div>
+    <span class="text-lg font-semibold text-red-400">Not Approved</span>
+    <span class="rounded-full bg-red-500/10 px-2 py-0.5 text-[10px] font-medium text-red-400">Below 1 star</span>
+  </div>
+  <p class="mb-3 text-sm text-zinc-300">Games that receive an average rating below 1 star are <strong class="text-red-400">not approved</strong> for publication. The approval thread is closed and locked for 7 days, after which the game may be resubmitted for review.</p>
+  <div class="rounded-md bg-zinc-900/60 px-4 py-2.5 text-sm text-zinc-400">
+    <span class="font-medium text-zinc-300">Visibility:</span> Not published. Game will not appear on the platform.
+  </div>
+</div>
+
+</div>
+
+## Minimum Quality Threshold
+
+<Callout type="warning">
+
+Games that receive an average rating **below 1 star** will **not be approved** for publication. This policy is in effect as of March 2026.
+
+</Callout>
+
+If your game does not meet the minimum 1-star threshold, the following process applies:
+
+1. **Thread closed** - your approval thread will be closed and locked.
+2. **7-day improvement window** - the thread remains locked for 7 days, giving you time to improve your game.
+3. **Resubmission** - after 7 days, you can resubmit your game for a new review cycle.
+
+This is not a permanent rejection. The goal is to help creators raise quality and give every game the best chance to succeed.
+
+## Category Placement Guidelines
+
+Categories are updated weekly.
+
+### New Releases
+
+- All games with a 1+ star rating receive a New Release tag.
+- **3 Stars** - Prioritized placement in *featured* and top positioning.
+- **2 Stars** - May appear in weekly releases if space allows, otherwise placed lower.
+- **1 Star** - Always placed at the bottom of New Releases, unless sorted by Newest.
+
+### Burst Games
+
+- Priority given to 3-star games.
+- 2-star games may appear if popularity drives demand.
+
+### Stake Exclusives
+
+- Priority given to 3-star games.
+- 2-star games may appear if driven by popularity.

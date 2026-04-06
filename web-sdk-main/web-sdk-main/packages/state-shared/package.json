@@ -1,0 +1,25 @@
+{
+	"name": "state-shared",
+	"version": "0.0.0",
+	"private": true,
+	"license": "MIT",
+	"scripts": {
+		"format": "prettier --write --ignore-path=../../.prettierignore .",
+		"lint": "eslint \"src\""
+	},
+	"type": "module",
+	"devDependencies": {
+		"eslint": "9.21.0",
+		"eslint-config-custom": "workspace:*",
+		"config-ts": "workspace:*",
+		"config-vite": "workspace:*",
+		"config-svelte": "workspace:*",
+		"config-lingui": "workspace:*"
+	},
+	"dependencies": {
+		"svelte": "5.55.1",
+		"@sveltejs/kit": "2.55.0",
+		"utils-bet": "workspace:*",
+		"@lingui/core": "5.9.4"
+	}
+}

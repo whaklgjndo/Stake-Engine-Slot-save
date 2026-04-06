@@ -1,0 +1,13 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Open lines Storybook in Edge",
+      "type": "pwa-msedge",
+      "request": "launch",
+      "url": "http://127.0.0.1:6001",
+      "webRoot": "${workspaceFolder}\\web-sdk-main\\web-sdk-main\\apps\\lines",
+      "preLaunchTask": "Start lines Storybook"
+    }
+  ]
+}

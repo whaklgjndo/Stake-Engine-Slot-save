@@ -1,0 +1,12 @@
+{
+  "name": "stake-engine-workspace",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Workspace entry point for Stake Engine slot development in apps/lines.",
+  "scripts": {
+    "storybook": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd --dir \"web-sdk-main\\web-sdk-main\\apps\\lines\" run storybook",
+    "dev": "npm run storybook",
+    "build": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd --dir \"web-sdk-main\\web-sdk-main\\apps\\lines\" run build",
+    "install:web-sdk": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd --dir \"web-sdk-main\\web-sdk-main\" install"
+  }
+}

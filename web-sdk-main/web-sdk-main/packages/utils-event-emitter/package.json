@@ -1,0 +1,25 @@
+{
+	"name": "utils-event-emitter",
+	"version": "0.0.0",
+	"private": true,
+	"license": "MIT",
+	"scripts": {
+		"format": "prettier --write --ignore-path=../../.prettierignore .",
+		"lint": "eslint \"src\""
+	},
+	"type": "module",
+	"devDependencies": {
+		"eslint": "9.21.0",
+		"eslint-config-custom": "workspace:*",
+		"@sveltejs/package": "2.5.7",
+		"@sveltejs/vite-plugin-svelte": "7.0.0",
+		"config-svelte": "workspace:*",
+		"config-ts": "workspace:*",
+		"config-vite": "workspace:*"
+	},
+	"dependencies": {
+		"@types/lodash": "4.17.16",
+		"svelte": "5.55.1",
+		"vite": "8.0.3"
+	}
+}

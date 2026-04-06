@@ -1,0 +1,52 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Install web-sdk dependencies",
+      "type": "shell",
+      "command": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd",
+      "args": ["install"],
+      "options": {
+        "cwd": "${workspaceFolder}\\web-sdk-main\\web-sdk-main"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Build lines app",
+      "type": "shell",
+      "command": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd",
+      "args": ["run", "build"],
+      "options": {
+        "cwd": "${workspaceFolder}\\web-sdk-main\\web-sdk-main\\apps\\lines"
+      },
+      "problemMatcher": []
+    },
+    {
+      "label": "Start lines Storybook",
+      "type": "shell",
+      "command": "C:\\Users\\Tyler\\AppData\\Roaming\\npm\\pnpm.cmd",
+      "args": ["run", "storybook"],
+      "options": {
+        "cwd": "${workspaceFolder}\\web-sdk-main\\web-sdk-main\\apps\\lines"
+      },
+      "isBackground": true,
+      "problemMatcher": {
+        "owner": "storybook",
+        "pattern": [
+          {
+            "regexp": "."
+          }
+        ],
+        "background": {
+          "activeOnStart": true,
+          "beginsPattern": ".",
+          "endsPattern": ".*6001.*"
+        }
+      },
+      "presentation": {
+        "reveal": "always",
+        "panel": "dedicated"
+      }
+    }
+  ]
+}
