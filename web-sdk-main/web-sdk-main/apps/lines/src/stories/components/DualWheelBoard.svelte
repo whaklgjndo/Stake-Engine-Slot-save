@@ -168,10 +168,6 @@
 	}
 
 	function cellMuted(row: number, column: number): boolean {
-		if (stickyResolvedWheelMode && resolvedWheelAtPosition(row, column)) {
-			return false;
-		}
-
 		if (activeWheelState) {
 			return !(activeWheelState.row === row && activeWheelState.column === column);
 		}
@@ -227,7 +223,7 @@
 				{@const resolvedWheelBurst = wheelBurstAtPosition(rowIndex, columnIndex)}
 				<div
 					class:cell={true}
-					class:cell-muted={cellMuted(rowIndex, columnIndex)}
+					class:cell-muted={cellMuted(rowIndex, columnIndex) && !stickyCellLocked}
 					class:cell-highlighted={highlighted}
 					class:cell-highlighted-quiet={highlighted && activeLineTone === 'small'}
 					class:cell-highlighted-big={highlighted && activeLineTone === 'big'}
