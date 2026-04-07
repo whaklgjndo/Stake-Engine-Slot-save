@@ -223,7 +223,7 @@
 				{@const resolvedWheelBurst = wheelBurstAtPosition(rowIndex, columnIndex)}
 				<div
 					class:cell={true}
-					class:cell-muted={cellMuted(rowIndex, columnIndex)}
+					class:cell-muted={cellMuted(rowIndex, columnIndex) && !stickyCellLocked}
 					class:cell-highlighted={highlighted}
 					class:cell-highlighted-quiet={highlighted && activeLineTone === 'small'}
 					class:cell-highlighted-big={highlighted && activeLineTone === 'big'}
@@ -257,7 +257,7 @@
 									alt={meta.label}
 								/>
 							</div>
-							{#if resolvedWheel && !activeWheel && !resolvedWheelBurst}
+							{#if resolvedWheel && !activeWheel && (!resolvedWheelBurst || stickyCellLocked)}
 								<div
 									class:wheel-result-chip={true}
 									class:wheel-result-chip-blue={resolvedWheel.type === 'blue'}
