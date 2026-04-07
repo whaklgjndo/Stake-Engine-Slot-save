@@ -210,8 +210,7 @@
 		{#each displayBoard as row, rowIndex}
 			{#each row as symbol, columnIndex}
 				{@const resolvedWheel = resolvedWheelAtPosition(rowIndex, columnIndex)}
-				{@const stickyWheelVisual =
-					stickyResolvedWheelMode && symbolMeta[symbol].kind !== 'wheel' && resolvedWheel}
+				{@const stickyWheelVisual = stickyResolvedWheelMode && Boolean(resolvedWheel)}
 				{@const stickyCellLocked = stickyResolvedWheelMode && Boolean(resolvedWheel)}
 				{@const displaySymbol = stickyWheelVisual
 					? (stickyWheelSymbol(resolvedWheel) ?? symbol)
