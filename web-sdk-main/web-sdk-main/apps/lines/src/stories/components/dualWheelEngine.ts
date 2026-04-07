@@ -566,7 +566,7 @@ export function simulateBonusRoundSession(
 		spins.push(spin);
 
 		if (config.stickyWheels) {
-			stickyWheelResults = { ...spin.wheelResults };
+			stickyWheelResults = { ...stickyWheelResults, ...spin.wheelResults };
 		}
 	}
 
