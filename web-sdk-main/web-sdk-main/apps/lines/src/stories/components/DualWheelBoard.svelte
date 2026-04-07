@@ -47,6 +47,7 @@
 	export let spinMood: SpinMood = 'base';
 	export let activeLineTone: LineTone | null = null;
 	export let stickyResolvedWheelMode = false;
+	let persistentResolvedWheelStates: Record<string, ResolvedWheelState> = {};
 
 	$: presentedSpinMood =
 		roundState === 'spinning'
@@ -62,6 +63,11 @@
 					: spinMood === 'dead'
 						? 'dead'
 						: 'base';
+	$: if (stickyResolvedWheelMode) {
+		persistentResolvedWheelStates = { ...persistentResolvedWheelStates, ...resolvedWheelStates };
+	} else {
+		persistentResolvedWheelStates = resolvedWheelStates;
+	}
 
 	function cellKey(row: number, column: number): string {
 		return `${row}-${column}`;
@@ -96,7 +102,7 @@
 	}
 
 	function resolvedWheelAtPosition(row: number, column: number): ResolvedWheelState | null {
-		return resolvedWheelStates[cellKey(row, column)] ?? null;
+		return (stickyResolvedWheelMode ? persistentResolvedWheelStates : resolvedWheelStates)[cellKey(row, column)] ?? null;
 	}
 
 	function wheelOverlayPosition(wheel: ActiveWheelState | null): Point {
@@ -1624,7 +1630,6 @@
 		}
 
 		52% {
-			opacity: 1;
 			transform: translate(-50%, -108%) scale(1.08);
 		}
 
