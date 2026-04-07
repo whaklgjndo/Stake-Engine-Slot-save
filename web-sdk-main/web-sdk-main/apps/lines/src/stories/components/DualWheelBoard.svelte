@@ -168,6 +168,10 @@
 	}
 
 	function cellMuted(row: number, column: number): boolean {
+		if (stickyResolvedWheelMode && resolvedWheelAtPosition(row, column)) {
+			return false;
+		}
+
 		if (activeWheelState) {
 			return !(activeWheelState.row === row && activeWheelState.column === column);
 		}
@@ -257,7 +261,7 @@
 									alt={meta.label}
 								/>
 							</div>
-							{#if resolvedWheel && !activeWheel && !resolvedWheelBurst}
+							{#if resolvedWheel && !activeWheel && (!resolvedWheelBurst || stickyCellLocked)}
 								<div
 									class:wheel-result-chip={true}
 									class:wheel-result-chip-blue={resolvedWheel.type === 'blue'}
