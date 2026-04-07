@@ -1371,10 +1371,13 @@
 				await resolveWheelQueue(wheelQueue);
 			}
 
-			const fullResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
-			resolvedWheelStates = fullResolvedState;
+			const currentSpinResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
+			const nextResolvedState = stickyWheels
+				? { ...stickyResolvedWheels, ...currentSpinResolvedState }
+				: currentSpinResolvedState;
+			resolvedWheelStates = nextResolvedState;
 			if (stickyWheels) {
-				stickyResolvedWheels = fullResolvedState;
+				stickyResolvedWheels = nextResolvedState;
 			}
 
 			if (bonusSpin.lineResults.length) {
@@ -4523,37 +4526,37 @@
 		.stage-topline,
 		.feature-banner,
 		.stage-rhythm,
-		.results-header,
-		.stage-console,
-		.tools-strip,
-		.console-bank-grid {
+		results-header,
+		stage-console,
+		tools-strip,
+		console-bank-grid {
 			grid-template-columns: 1fr;
 		}
 
-		.stat-grid,
-		.reel-rhythm-track,
-		.console-action-row,
-		.console-toggle-stack,
-		.bonus-buy-row,
-		.tool-action-row {
+		stat-grid,
+		reel-rhythm-track,
+		console-action-row,
+		console-toggle-stack,
+		bonus-buy-row,
+		tool-action-row {
 			grid-template-columns: 1fr;
 		}
 
-		.result-row,
-		.history-row,
-		.history-meta {
+		result-row,
+		history-row,
+		history-meta {
 			grid-template-columns: 1fr;
 		}
 
-		.stage-rhythm-focus {
+		stage-rhythm-focus {
 			min-width: 0;
 		}
 
-		.feature-banner-metrics {
+		feature-banner-metrics {
 			justify-content: start;
 		}
 
-		.tool-card-paylines {
+		tool-card-paylines {
 			grid-column: auto;
 		}
 	}
