@@ -1,6 +1,17 @@
 <script lang="ts">
 	import BlueSingleWheel from './BlueSingleWheel.svelte';
 	import RedDualWheel from './RedDualWheel.svelte';
+	import boardAoArt from '../assets/board/board_ao.png';
+	import boardBaseArt from '../assets/board/board_base.png';
+	import boardCellRecessArt from '../assets/board/board_cell_recess.png';
+	import boardContactShadowArt from '../assets/board/board_contact_shadow.png';
+	import boardDamageDetailArt from '../assets/board/board_damage_detail.png';
+	import boardMossOverlayArt from '../assets/board/board_moss_overlay.png';
+	import boardRunesArt from '../assets/board/board_runes.png';
+	import boardTrimGoldArt from '../assets/board/board_trim_gold.png';
+	import cellBaseArt from '../assets/cells/cell_base.png';
+	import cellInnerShadowArt from '../assets/cells/cell_inner_shadow.png';
+	import cellWinGlowArt from '../assets/cells/cell_win_glow.png';
 	import {
 		BOARD_H,
 		BOARD_PADDING,
@@ -256,6 +267,28 @@
 	class:board-frame-big={presentedSpinMood === 'big'}
 	style={`--board-width:${BOARD_W}px; --board-height:${BOARD_H}px;`}
 >
+	<div class="board-contact-shadow" aria-hidden="true">
+		<img class="board-contact-shadow-art" src={boardContactShadowArt} alt="" />
+	</div>
+	<div class="board-backlight" aria-hidden="true"></div>
+	<div class="board-frame-art board-frame-art-base" aria-hidden="true">
+		<img src={boardBaseArt} alt="" />
+	</div>
+	<div class="board-frame-art board-frame-art-ao" aria-hidden="true">
+		<img src={boardAoArt} alt="" />
+	</div>
+	<div class="board-frame-art board-frame-art-trim" aria-hidden="true">
+		<img src={boardTrimGoldArt} alt="" />
+	</div>
+	<div class="board-frame-art board-frame-art-runes" aria-hidden="true">
+		<img src={boardRunesArt} alt="" />
+	</div>
+	<div class="board-frame-art board-frame-art-damage" aria-hidden="true">
+		<img src={boardDamageDetailArt} alt="" />
+	</div>
+	<div class="board-frame-art board-frame-art-moss" aria-hidden="true">
+		<img src={boardMossOverlayArt} alt="" />
+	</div>
 	<div
 		class:board={true}
 		class:board-active={reelStates.some((state) => state !== 'idle')}
@@ -269,6 +302,9 @@
 			activeLineTone === 'big'}
 		style={`grid-template-columns: repeat(${REELS}, ${SIZE}px); grid-template-rows: repeat(${ROWS}, ${SIZE}px); gap: ${GAP}px;`}
 	>
+		<div class="board-recess-art" aria-hidden="true">
+			<img src={boardCellRecessArt} alt="" />
+		</div>
 		{#each displayBoard as row, rowIndex}
 			{#each row as symbol, columnIndex}
 				{@const lockedCell = lockedCellAtPosition(rowIndex, columnIndex)}
@@ -319,6 +355,15 @@
 					data-symbol={displaySymbol}
 					style={`--cell-background:${meta.background}; --cell-glow:${meta.glow}; --cell-frame:${meta.frame};`}
 				>
+					<div class="cell-art-layer cell-art-base" aria-hidden="true">
+						<img src={cellBaseArt} alt="" />
+					</div>
+					<div class="cell-art-layer cell-art-shadow" aria-hidden="true">
+						<img src={cellInnerShadowArt} alt="" />
+					</div>
+					<div class="cell-art-layer cell-art-win" aria-hidden="true">
+						<img src={cellWinGlowArt} alt="" />
+					</div>
 					{#if meta.kind === 'wheel'}
 						<div class="symbol-shell symbol-shell-wheel">
 							<div
@@ -553,9 +598,21 @@
 		border-radius: 28px;
 		overflow: visible;
 		background:
-			radial-gradient(circle at 12% 16%, var(--frame-cool), transparent 24%),
-			radial-gradient(circle at 88% 22%, var(--frame-warm), transparent 22%),
-			linear-gradient(180deg, rgba(36, 49, 67, 0.96), rgba(15, 24, 35, 0.98)),
+			radial-gradient(circle at 14% 18%, var(--frame-cool), transparent 22%),
+			radial-gradient(circle at 84% 22%, var(--frame-warm), transparent 24%),
+			linear-gradient(
+				180deg,
+				rgba(61, 55, 50, 0.98),
+				rgba(31, 33, 38, 0.99) 34%,
+				rgba(18, 24, 33, 0.98)
+			),
+			linear-gradient(
+				90deg,
+				rgba(110, 84, 42, 0.14),
+				transparent 22%,
+				transparent 78%,
+				rgba(72, 46, 28, 0.16)
+			),
 			repeating-linear-gradient(
 				90deg,
 				rgba(255, 255, 255, 0.018) 0,
@@ -567,8 +624,58 @@
 		box-shadow:
 			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
 			inset 0 18px 24px rgba(255, 255, 255, 0.04),
-			inset 0 -24px 42px rgba(3, 8, 14, 0.42),
-			0 26px 50px rgba(2, 10, 20, 0.42);
+			inset 0 -28px 52px rgba(3, 8, 14, 0.5),
+			0 32px 64px rgba(2, 10, 20, 0.46);
+		transform: perspective(1800px) rotateX(3.2deg);
+		transform-origin: center top;
+		transform-style: preserve-3d;
+	}
+
+	.board-frame-art {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.board-frame-art img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: fill;
+	}
+
+	.board-frame-art-base {
+		z-index: 0;
+		opacity: 0.94;
+	}
+
+	.board-frame-art-ao {
+		z-index: 1;
+		opacity: 0.72;
+		mix-blend-mode: multiply;
+	}
+
+	.board-frame-art-trim {
+		z-index: 2;
+		opacity: 0.86;
+	}
+
+	.board-frame-art-runes {
+		z-index: 1;
+		opacity: 0.42;
+		mix-blend-mode: screen;
+	}
+
+	.board-frame-art-damage {
+		z-index: 2;
+		opacity: 0.44;
+		mix-blend-mode: multiply;
+	}
+
+	.board-frame-art-moss {
+		z-index: 2;
+		opacity: 0.36;
 	}
 
 	.board-frame::before {
@@ -578,8 +685,16 @@
 		border-radius: 22px;
 		border: 1px solid rgba(222, 235, 248, 0.08);
 		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 18%),
-			linear-gradient(0deg, rgba(0, 0, 0, 0.22), transparent 22%);
+			radial-gradient(circle at 50% 0%, rgba(255, 229, 169, 0.08), transparent 24%),
+			linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 14%),
+			linear-gradient(0deg, rgba(0, 0, 0, 0.34), transparent 24%),
+			linear-gradient(
+				90deg,
+				rgba(0, 0, 0, 0.18),
+				transparent 12%,
+				transparent 88%,
+				rgba(0, 0, 0, 0.18)
+			);
 		pointer-events: none;
 	}
 
@@ -609,6 +724,43 @@
 		pointer-events: none;
 	}
 
+	.board-contact-shadow {
+		position: absolute;
+		left: 50%;
+		bottom: -54px;
+		width: calc(var(--board-width) + 190px);
+		height: 124px;
+		transform: translateX(-50%) rotateX(74deg);
+		transform-origin: center top;
+		opacity: 0.82;
+		pointer-events: none;
+		z-index: -2;
+	}
+
+	.board-contact-shadow-art {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		opacity: 0.92;
+	}
+
+	.board-backlight {
+		position: absolute;
+		left: 26px;
+		right: 26px;
+		top: 18px;
+		height: 42%;
+		border-radius: 28px 28px 40px 40px;
+		background:
+			radial-gradient(circle at 50% 0%, rgba(111, 179, 255, 0.14), transparent 42%),
+			radial-gradient(circle at 50% 12%, rgba(255, 208, 145, 0.08), transparent 46%);
+		filter: blur(18px);
+		opacity: 0.72;
+		pointer-events: none;
+		z-index: 0;
+	}
+
 	.board-frame-dead {
 		--spin-saturate: 0.82;
 		--spin-blur: 0.22px;
@@ -627,6 +779,10 @@
 		--red-wheel-land-delay: 30ms;
 		--board-aura: rgba(68, 121, 255, 0.14);
 		--board-border: rgba(156, 190, 219, 0.12);
+	}
+
+	.board-frame-dead .board-contact-shadow {
+		opacity: 0.68;
 	}
 
 	.board-frame-feature {
@@ -651,6 +807,11 @@
 		--board-border: rgba(134, 199, 245, 0.2);
 	}
 
+	.board-frame-feature .board-backlight {
+		opacity: 0.9;
+		filter: blur(20px);
+	}
+
 	.board-frame-big {
 		--spin-saturate: 0.6;
 		--spin-blur: 1.2px;
@@ -673,6 +834,15 @@
 		--board-border: rgba(255, 153, 126, 0.22);
 	}
 
+	.board-frame-big .board-backlight {
+		opacity: 1;
+		filter: blur(22px);
+	}
+
+	.board-frame-big .board-contact-shadow {
+		opacity: 0.9;
+	}
+
 	.board {
 		position: relative;
 		display: grid;
@@ -682,9 +852,9 @@
 		isolation: isolate;
 		border-radius: 24px;
 		background:
-			radial-gradient(circle at 50% 8%, rgba(110, 169, 241, 0.08), transparent 22%),
-			radial-gradient(circle at 50% 100%, rgba(183, 105, 72, 0.08), transparent 22%),
-			linear-gradient(180deg, rgba(6, 11, 16, 0.97), rgba(10, 15, 21, 0.96)),
+			radial-gradient(circle at 50% 8%, rgba(110, 169, 241, 0.12), transparent 24%),
+			radial-gradient(circle at 50% 100%, rgba(183, 105, 72, 0.12), transparent 24%),
+			linear-gradient(180deg, rgba(8, 13, 18, 0.98), rgba(11, 16, 22, 0.98)),
 			repeating-linear-gradient(
 				90deg,
 				rgba(255, 255, 255, 0.022) 0,
@@ -702,9 +872,28 @@
 		box-shadow:
 			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
 			inset 0 24px 28px rgba(255, 255, 255, 0.025),
-			inset 0 -36px 40px rgba(0, 0, 0, 0.4),
-			0 18px 44px rgba(0, 0, 0, 0.45);
+			inset 0 -42px 46px rgba(0, 0, 0, 0.44),
+			0 24px 50px rgba(0, 0, 0, 0.5);
 		overflow: visible;
+		transform: translateZ(12px);
+		z-index: 3;
+	}
+
+	.board-recess-art {
+		position: absolute;
+		inset: 12px;
+		pointer-events: none;
+		user-select: none;
+		z-index: 0;
+		opacity: 0.56;
+		mix-blend-mode: screen;
+	}
+
+	.board-recess-art img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: fill;
 	}
 
 	.board::before {
@@ -779,12 +968,52 @@
 		inset: 5px;
 		border-radius: 18px;
 		background:
+			radial-gradient(circle at 22% 24%, rgba(122, 191, 255, 0.08), transparent 28%),
+			radial-gradient(circle at 78% 78%, rgba(255, 201, 138, 0.06), transparent 26%),
 			radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.03), transparent 44%),
-			linear-gradient(180deg, rgba(255, 255, 255, 0.012), rgba(0, 0, 0, 0.12));
+			linear-gradient(180deg, rgba(255, 255, 255, 0.014), rgba(0, 0, 0, 0.16));
 		box-shadow:
 			inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-			inset 0 -10px 14px rgba(0, 0, 0, 0.18);
-		opacity: 0.88;
+			inset 0 -12px 18px rgba(0, 0, 0, 0.22);
+		opacity: 0.34;
+	}
+
+	.cell-art-layer {
+		position: absolute;
+		inset: 0;
+		pointer-events: none;
+		user-select: none;
+	}
+
+	.cell-art-layer img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: fill;
+	}
+
+	.cell-art-base {
+		z-index: 0;
+		opacity: 0.7;
+	}
+
+	.cell-art-shadow {
+		z-index: 0;
+		opacity: 0.66;
+		mix-blend-mode: multiply;
+	}
+
+	.cell-art-win {
+		z-index: 0;
+		opacity: 0;
+		mix-blend-mode: screen;
+		transition: opacity 160ms ease;
+	}
+
+	.cell-highlighted .cell-art-win,
+	.cell-highlighted-quiet .cell-art-win,
+	.cell-bonus-triggered .cell-art-win {
+		opacity: 0.72;
 	}
 
 	.cell-spinning {
@@ -1026,8 +1255,9 @@
 		object-fit: contain;
 		position: relative;
 		z-index: 1;
-		filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.24))
-			drop-shadow(0 2px 4px rgba(255, 255, 255, 0.03));
+		filter: drop-shadow(-6px -4px 10px rgba(104, 178, 255, 0.08))
+			drop-shadow(8px 10px 12px rgba(255, 189, 128, 0.05))
+			drop-shadow(0 14px 20px rgba(0, 0, 0, 0.24)) drop-shadow(0 2px 4px rgba(255, 255, 255, 0.03));
 	}
 
 	.symbol-art-sheet {
@@ -1093,7 +1323,8 @@
 		box-shadow:
 			inset 0 0 0 2px rgba(255, 233, 176, 0.28),
 			inset 0 -10px 14px rgba(88, 25, 7, 0.34),
-			0 18px 24px rgba(0, 0, 0, 0.26);
+			0 18px 24px rgba(0, 0, 0, 0.26),
+			0 0 18px rgba(110, 190, 255, 0.08);
 		transform: translateZ(0);
 	}
 
@@ -1172,7 +1403,9 @@
 		width: var(--symbol-size);
 		height: var(--symbol-size);
 		object-fit: contain;
-		filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.26));
+		filter: drop-shadow(-5px -3px 10px rgba(111, 184, 255, 0.1))
+			drop-shadow(7px 9px 12px rgba(255, 188, 123, 0.06))
+			drop-shadow(0 12px 18px rgba(0, 0, 0, 0.26));
 	}
 
 	.wheel-result-badge {
@@ -2292,6 +2525,16 @@
 	}
 
 	@media (max-width: 960px) {
+		.board-frame {
+			transform: perspective(1600px) rotateX(2deg);
+		}
+
+		.board-contact-shadow {
+			bottom: -44px;
+			height: 92px;
+			opacity: 0.7;
+		}
+
 		.board {
 			transform: scale(0.88);
 			transform-origin: top center;

@@ -1,0 +1,11 @@
+<script>
+	(() => {
+		const url = new URL(window.location.href);
+		const currentPath = url.searchParams.get('path');
+
+		if (!currentPath) {
+			url.searchParams.set('path', '/story/prototypes-dual-wheel-workshop--playground');
+			window.location.replace(url.toString());
+		}
+	})();
+</script>
