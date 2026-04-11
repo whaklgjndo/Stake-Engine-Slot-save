@@ -5,6 +5,7 @@ import {
 	LIVE_BASE_GAME_WHEEL_PROFILE,
 	paylines,
 	paytable,
+	PRODUCT_MAX_WIN_TARGET,
 	RED_INNER_SEGMENTS,
 	RED_INNER_SEGMENT_WEIGHTS,
 	RED_OUTER_SEGMENTS,
@@ -27,12 +28,17 @@ import type {
 
 export type RandomFn = () => number;
 
+export function clampWin(payout: number, bet: number): number {
+	return Math.min(payout, bet * PRODUCT_MAX_WIN_TARGET);
+}
+
 export type LiveSpinMathResult = {
 	board: SymbolId[][];
 	wheelResults: Record<string, WheelAward>;
 	lineResults: LineResult[];
 	wheelQueue: LineResult['wheels'];
 	totalWin: number;
+	maxWinCapped: boolean;
 	spinMood: SpinMood;
 };
 
@@ -492,7 +498,8 @@ export function buildLiveSpinMath(bet: number, rng: RandomFn = Math.random): Liv
 	const wheelResults = buildWheelResults(board, rng);
 	const lineResults = evaluateBoard(board, wheelResults, bet);
 	const wheelQueue = buildWheelQueue(lineResults);
-	const totalWin = lineResults.reduce((sum, result) => sum + result.payout, 0);
+	const rawWin = lineResults.reduce((sum, result) => sum + result.payout, 0);
+	const totalWin = clampWin(rawWin, bet);
 	const spinMood = deriveSpinMood(lineResults, bet);
 
 	return {
@@ -501,6 +508,7 @@ export function buildLiveSpinMath(bet: number, rng: RandomFn = Math.random): Liv
 		lineResults,
 		wheelQueue,
 		totalWin,
+		maxWinCapped: totalWin < rawWin,
 		spinMood,
 	};
 }
@@ -517,7 +525,8 @@ function buildProfileSpinMath(
 	const wheelResults = buildWheelResults(board, rng, stickyWheelResults);
 	const lineResults = evaluateBoard(board, wheelResults, bet);
 	const wheelQueue = buildWheelQueue(lineResults);
-	const totalWin = lineResults.reduce((sum, result) => sum + result.payout, 0);
+	const rawWin = lineResults.reduce((sum, result) => sum + result.payout, 0);
+	const totalWin = clampWin(rawWin, bet);
 	const spinMood = deriveSpinMood(lineResults, bet);
 
 	return {
@@ -526,6 +535,7 @@ function buildProfileSpinMath(
 		lineResults,
 		wheelQueue,
 		totalWin,
+		maxWinCapped: totalWin < rawWin,
 		spinMood,
 	};
 }
@@ -570,9 +580,11 @@ export function simulateBonusRoundSession(
 		}
 	}
 
+	const clampedTotalPaid = clampWin(totalPaid, bet);
+
 	return {
 		mode,
-		totalPaid,
+		totalPaid: clampedTotalPaid,
 		spins,
 		maxSpinWin,
 		blueWheels,
@@ -838,7 +850,8 @@ export function simulateGameSpins(
 		const baseSpin = buildLiveSpinMath(bet, rng);
 		const bonusMode = rollBonusTrigger(rng);
 		const bonusRound = bonusMode ? simulateBonusRoundSession(bonusMode, bet, rng) : null;
-		const totalRoundPaid = baseSpin.totalWin + (bonusRound?.totalPaid ?? 0);
+		const rawRoundPaid = baseSpin.totalWin + (bonusRound?.totalPaid ?? 0);
+		const totalRoundPaid = clampWin(rawRoundPaid, bet);
 		const totalRoundMultiplier = bet > 0 ? totalRoundPaid / bet : 0;
 		const roundVolatility = classifyVolatility(
 			baseSpin.lineResults,
