@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onDestroy } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import DualWheelBoard from './DualWheelBoard.svelte';
 	import {
 		autoplayPresets,
@@ -44,6 +44,7 @@
 		evaluateBoard as evaluateBoardFromEngine,
 		isWild as isWildFromEngine,
 		randomLiveBaseGameBoard as randomLiveBaseGameBoardFromEngine,
+		resolveBonusTriggerFromBoard,
 		simulateBonusRoundSession,
 		type LiveSpinMathResult,
 		wheelPositionKey as wheelPositionKeyFromEngine,
@@ -52,7 +53,9 @@
 		ActiveWheelState,
 		AudioCueDetail,
 		AudioCueImportance,
+		BonusTrigger,
 		BonusMode,
+		LockedCellState,
 		LineTone,
 		LineResult,
 		Point,
@@ -91,6 +94,18 @@
 		accumulatedWin: number;
 		stickyWheels: boolean;
 	};
+	type BonusTriggerRevealState = BonusTrigger & {
+		totalSpins: number;
+		stickyWheels: boolean;
+	};
+	type FeatureTransitionState = {
+		phase: 'intro' | 'outro';
+		mode: BonusMode;
+		totalSpins: number;
+		triggerCount: number;
+		stickyWheels: boolean;
+		totalWin?: number;
+	};
 	type LoopSignals = {
 		liveSpins: number;
 		hitSpins: number;
@@ -119,13 +134,14 @@
 		sourceType: 'live' | 'forced' | 'bonus';
 		bonusMode?: BonusMode;
 		bonusSpins?: number;
+		bonusTrigger?: BonusTrigger | null;
 		math?: LiveSpinMathResult;
 	};
 
 	const LIVE_SPIN_KEY = 'live-strip-spin';
-	const LIVE_SPIN_LABEL = 'Live Strip Spin';
+	const LIVE_SPIN_LABEL = 'Base Game';
 	const LIVE_SPIN_NOTE =
-		'Generates a fresh board from the weighted reel strips and rolls random wheel multipliers.';
+		'Weighted base reels with rare blue and red wheel drops, visible scatter triggers, and paid features.';
 	const LIVE_SPIN_BET = 1;
 	const LIVE_BALANCE_START = 118.13;
 	const liveBetOptions = [0.2, 0.4, 1, 2, 5, 10] as const;
@@ -148,6 +164,20 @@
 		biggestWin: 0,
 		biggestWinMultiplier: 0,
 	});
+	const createUnlockedCellState = (): LockedCellState => ({
+		locked: false,
+		multiplierValue: null,
+		symbol: null,
+		type: null,
+		outer: null,
+		inner: null,
+	});
+	const createLockedCellGrid = (): LockedCellState[][] =>
+		Array.from({ length: ROWS }, () =>
+			Array.from({ length: REELS }, () => createUnlockedCellState()),
+		);
+	const cloneLockedCellGrid = (grid: LockedCellState[][]): LockedCellState[][] =>
+		grid.map((row) => row.map((cell) => ({ ...cell })));
 	const reelRegularPools: RegularSymbolId[][] = reelStrips.map((strip) =>
 		strip.filter(
 			(symbol): symbol is RegularSymbolId => symbol !== 'blueWheel' && symbol !== 'redWheel',
@@ -166,12 +196,15 @@
 	let activeLineIndex = -1;
 	let animatedTotalWin = 0;
 	let showTotalWin = false;
+	let lockedCells = createLockedCellGrid();
 	let spinCounter = 0;
 	let showPayoutChip = false;
 	let activeWheelState: ActiveWheelState | null = null;
 	let resolvedWheelStates: Record<string, ResolvedWheelState> = {};
 	let wheelResultBursts: WheelResultBurst[] = [];
 	let wheelResultBurstId = 0;
+	let activeBonusTrigger: BonusTrigger | null = null;
+	let activeSpinBonusTrigger: BonusTrigger | null = null;
 	let latestAudioCue = 'system.ready';
 	let latestAudioCueDetail: AudioCueDetail | null = null;
 	let quickSpinEnabled = false;
@@ -219,6 +252,7 @@
 	let spinHistory: SpinHistoryEntry[] = [];
 	let liveLoopSignals = createLoopSignals();
 	let bonusPreviewState: BonusPreviewState | null = null;
+	let featureTransitionState: FeatureTransitionState | null = null;
 	let regularBuyCost = LIVE_SPIN_BET * PREVIEW_BONUS_BUY_MULTIPLIERS.regular;
 	let superBuyCost = LIVE_SPIN_BET * PREVIEW_BONUS_BUY_MULTIPLIERS.super;
 	let canBuyRegular = false;
@@ -229,6 +263,14 @@
 	let featureSpinsRemaining = 0;
 	let featureBannerTitle = '';
 	let featureBannerNote = '';
+	let bonusTriggerRevealState: BonusTriggerRevealState | null = null;
+	let featureProgressRatio = 0;
+	let featureCollectedMultiplier = 0;
+	let stickyLockCount = 0;
+	let activeBonusSpinMode: BonusMode | null = null;
+	let activeBonusDangerLevel = 0;
+	let soundEnabled = true;
+	let autoplayConfirmOpen = false;
 
 	$: currentScenario =
 		scenarios.find((scenario) => scenario.key === selectedScenarioKey) ?? scenarios[0];
@@ -267,47 +309,60 @@
 			? `${autoplaySpinsRemaining} left`
 			: 'Final spin'
 		: `${autoplayPreset} ready`;
-	$: statusLabel =
-		roundState === 'spinning'
-			? stopRequested
-				? 'Stopping reels'
-				: reelStates[REELS - 1] === 'braking'
-					? 'Final reel holding'
-					: 'Reels spinning'
-			: roundState === 'showingLines'
-				? resolveSkipRequested
-					? 'Skipping reveal'
-					: activeWheelState
-						? `Resolving ${activeWheelState.type === 'blue' ? 'blue' : 'red'} wheel`
-						: activeLine
-							? `Showing line ${activeLineIndex + 1} of ${lineResults.length}`
-							: currentSpinMood === 'big'
-								? 'Holding feature tension'
-								: currentSpinMood === 'feature'
-									? 'Feature settle'
-									: 'Showing winning lines'
-				: roundState === 'countingWin'
+	$: statusLabel = featureTransitionState
+		? featureTransitionState.phase === 'intro'
+			? `${bonusFeatureLabel(featureTransitionState.mode)} starting`
+			: `${bonusFeatureLabel(featureTransitionState.mode)} settling`
+		: bonusTriggerRevealState
+			? `${bonusFeatureLabel(bonusTriggerRevealState.mode)} unlocked`
+			: roundState === 'spinning'
+				? stopRequested
+					? 'Stopping reels'
+					: reelStates[REELS - 1] === 'braking'
+						? 'Final reel holding'
+						: 'Reels spinning'
+				: roundState === 'showingLines'
 					? resolveSkipRequested
-						? 'Skipping count-up'
-						: 'Counting total win'
-					: isLiveSource && !hasLiveFunds
-						? 'Insufficient balance'
-						: autoplayEnabled
-							? `Autoplay ${autoplaySpinsRemaining > 0 ? `${autoplaySpinsRemaining} left` : 'final spin'}`
-							: 'Ready';
+						? 'Skipping reveal'
+						: activeWheelState
+							? `Resolving ${activeWheelState.type === 'blue' ? 'blue' : 'red'} wheel`
+							: activeLine
+								? `Showing line ${activeLineIndex + 1} of ${lineResults.length}`
+								: currentSpinMood === 'big'
+									? 'Holding feature tension'
+									: currentSpinMood === 'feature'
+										? 'Feature settle'
+										: 'Showing winning lines'
+					: roundState === 'countingWin'
+						? resolveSkipRequested
+							? 'Skipping count-up'
+							: 'Counting total win'
+						: isLiveSource && !hasLiveFunds
+							? 'Insufficient balance'
+							: autoplayEnabled
+								? `Autoplay ${autoplaySpinsRemaining > 0 ? `${autoplaySpinsRemaining} left` : 'final spin'}`
+								: 'Ready';
 	$: activeWheelMessageState = activeWheelMessage(activeWheelState);
 	$: activeLineTone = activeLine ? resultTone(activeLine) : null;
 	$: activeStageTone = showTotalWin
 		? 'big'
-		: activeWheelState?.type === 'red'
+		: featureTransitionState?.mode === 'super'
 			? 'big'
-			: activeWheelState
+			: featureTransitionState
 				? 'medium'
-				: activeLine && resultTone(activeLine) === 'big'
+				: bonusTriggerRevealState?.mode === 'super'
 					? 'big'
-					: activeLine && resultTone(activeLine) === 'medium'
+					: bonusTriggerRevealState
 						? 'medium'
-						: 'idle';
+						: activeWheelState?.type === 'red'
+							? 'big'
+							: activeWheelState
+								? 'medium'
+								: activeLine && resultTone(activeLine) === 'big'
+									? 'big'
+									: activeLine && resultTone(activeLine) === 'medium'
+										? 'medium'
+										: 'idle';
 	$: blueWheelOverlayStyle = blueWheelStyle(activeWheelState);
 	$: redWheelOverlayStyle = redWheelStyle(activeWheelState);
 	$: liveHitRate = liveLoopSignals.liveSpins
@@ -340,18 +395,36 @@
 	$: featureSpinsRemaining = bonusPreviewState
 		? Math.max(bonusPreviewState.totalSpins - bonusPreviewState.currentSpin, 0)
 		: 0;
+	$: featureProgressRatio = bonusPreviewState
+		? Math.min(
+				Math.max(
+					bonusPreviewState.totalSpins > 0
+						? bonusPreviewState.currentSpin / bonusPreviewState.totalSpins
+						: 0,
+					0,
+				),
+				1,
+			)
+		: 0;
+	$: featureCollectedMultiplier =
+		bonusPreviewState && selectedSourceBet > 0
+			? bonusPreviewState.accumulatedWin / selectedSourceBet
+			: 0;
+	$: stickyLockCount = lockedCells.reduce(
+		(count, row) =>
+			count + row.filter((cell) => cell.locked && cell.multiplierValue !== null).length,
+		0,
+	);
 	$: featureBannerTitle = !bonusPreviewState
 		? ''
 		: bonusPreviewState.currentSpin === 0
-			? `Launching ${bonusPreviewState.totalSpins} free spins`
-			: `${featureSpinsRemaining} free spins remaining`;
+			? `${bonusTriggerCount(bonusPreviewState.mode)} scatters unlock ${bonusPreviewState.totalSpins} free spins`
+			: `${bonusFeatureLabel(bonusPreviewState.mode)} | ${featureSpinsRemaining} remaining`;
 	$: featureBannerNote = !bonusPreviewState
 		? ''
 		: bonusPreviewState.currentSpin === 0
-			? bonusPreviewState.stickyWheels
-				? 'Sticky wheel values stay locked for the full feature.'
-				: 'Wheel frequency is boosted for the full feature.'
-			: `Spin ${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins} · GC ${formatValue(
+			? bonusBuyDescription(bonusPreviewState.mode)
+			: `Spin ${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins} | ${formatCurrency(
 					bonusPreviewState.accumulatedWin,
 				)} collected`;
 	$: totalWinKicker = bonusPreviewState
@@ -540,12 +613,16 @@
 		return value.toFixed(2);
 	}
 
+	function formatCurrency(value: number): string {
+		return `$${formatValue(value)}`;
+	}
+
 	function formatMultiplier(value: number): string {
 		return Number.isInteger(value) ? `${value}x` : `${value.toFixed(1)}x`;
 	}
 
 	function formatSignedValue(value: number): string {
-		const absolute = Math.abs(value).toFixed(2);
+		const absolute = formatCurrency(Math.abs(value));
 		if (value > 0) return `+${absolute}`;
 		if (value < 0) return `-${absolute}`;
 		return absolute;
@@ -563,8 +640,69 @@
 		return `${formatMultiplier(min)}-${formatMultiplier(max)}`;
 	}
 
+	function paytableValue(symbol: RegularSymbolId, count: 3 | 4 | 5): string {
+		const value = paytable[symbol][count] ?? 0;
+		return value > 0 ? formatMultiplier(value) : '—';
+	}
+
 	function bonusModeLabel(mode: BonusMode): string {
 		return mode === 'regular' ? 'Regular' : 'Super';
+	}
+
+	function bonusFeatureLabel(mode: BonusMode): string {
+		return mode === 'regular' ? 'Regular Free Spins' : 'Super Free Spins';
+	}
+
+	function bonusTriggerCount(mode: BonusMode): number {
+		return BONUS_ROUND_CONFIG[mode].triggerCount;
+	}
+
+	function bonusTransitionSlots(mode: BonusMode): number[] {
+		return Array.from({ length: bonusTriggerCount(mode) }, (_, index) => index);
+	}
+
+	function bonusTriggerSlots(count: number): number[] {
+		return Array.from({ length: count }, (_, index) => index);
+	}
+
+	function bonusBuyTitle(mode: BonusMode): string {
+		return mode === 'regular' ? 'Regular Feature' : 'Super Feature';
+	}
+
+	function bonusBuyDescription(mode: BonusMode): string {
+		return mode === 'regular'
+			? 'Boosted blue and red wheel rate across all 10 free spins.'
+			: 'Sticky wheels lock their values and stay fixed for the full 10-spin feature.';
+	}
+
+	function bonusTransitionHeadline(state: FeatureTransitionState): string {
+		if (state.phase === 'intro') {
+			return `${state.triggerCount} scatters unlock ${state.totalSpins} free spins`;
+		}
+
+		return `${bonusFeatureLabel(state.mode)} complete`;
+	}
+
+	function bonusTransitionNote(state: FeatureTransitionState): string {
+		if (state.phase === 'intro') {
+			return state.stickyWheels
+				? 'Every landed wheel locks into place and keeps its multiplier until the feature ends.'
+				: 'Wheel landing rates are boosted across the full feature to keep the reels hot.';
+		}
+
+		return state.stickyWheels
+			? 'Sticky wheel cells held their values through all free spins.'
+			: 'The full 10-spin feature has finished resolving.';
+	}
+
+	function bonusTriggerRevealHeadline(state: BonusTriggerRevealState): string {
+		return `${state.count} scatters unlock ${state.totalSpins} free spins`;
+	}
+
+	function bonusTriggerRevealNote(state: BonusTriggerRevealState): string {
+		return state.stickyWheels
+			? 'Super bonus: landed wheels lock their values and stay fixed for the full feature.'
+			: 'Regular bonus: wheel landing rates are boosted across the full 10 free spins.';
 	}
 
 	function bonusBuyCost(mode: BonusMode): number {
@@ -662,22 +800,175 @@
 		return signals;
 	}
 
+	function countLockedMultiplierCells(grid: LockedCellState[][]): number {
+		return grid.reduce(
+			(count, row) =>
+				count + row.filter((cell) => cell.locked && cell.multiplierValue !== null).length,
+			0,
+		);
+	}
+
+	function enhanceBonusReelAnticipation(
+		mode: BonusMode,
+		sourceBoard: SymbolId[][],
+		results: LineResult[],
+		stickyCount: number,
+	): ReelAnticipation[] {
+		const signals = deriveReelAnticipation(sourceBoard, results);
+
+		if (mode === 'regular') {
+			for (let column = 1; column < REELS; column += 1) {
+				if (signals[column] !== 'none') continue;
+				const hasValueSymbol = sourceBoard.some((row) => {
+					const symbol = row[column];
+					return (
+						symbolMeta[symbol].tier === 'gold' || symbol === 'blueWheel' || symbol === 'redWheel'
+					);
+				});
+				if (hasValueSymbol && column >= 2) {
+					signals[column] = 'premium';
+				}
+			}
+			return signals;
+		}
+
+		const pressure = Math.min(stickyCount, 4);
+		for (let column = 1; column < REELS; column += 1) {
+			if (signals[column] === 'wheel') continue;
+			if (pressure >= 3 && column >= 2) {
+				signals[column] = 'wheel';
+				continue;
+			}
+			if (pressure >= 1) {
+				signals[column] = strongerReelAnticipation(signals[column], 'premium');
+			}
+		}
+
+		if (pressure >= 2) {
+			signals[REELS - 1] = 'wheel';
+		}
+
+		return signals;
+	}
+
+	function deriveBonusSpinMood(
+		mode: BonusMode,
+		bonusSpin: ReturnType<typeof simulateBonusRoundSession>['spins'][number],
+		stickyCount: number,
+	): SpinMood {
+		if (bonusSpin.totalWin >= selectedSourceBet * 50) return 'big';
+		if (mode === 'regular') {
+			return bonusSpin.lineResults.length || bonusSpin.wheelQueue.length ? 'feature' : 'base';
+		}
+		if (stickyCount >= 3) {
+			return bonusSpin.lineResults.length || bonusSpin.wheelQueue.length ? 'big' : 'feature';
+		}
+		return 'feature';
+	}
+
+	function scatterTriggerColumnCount(
+		index: number,
+		trigger: BonusTrigger | null = activeSpinBonusTrigger,
+	): number {
+		if (!trigger) return 0;
+		return trigger.positions.filter((position) => position.column === index).length;
+	}
+
+	function lastScatterTriggerColumn(trigger: BonusTrigger | null = activeSpinBonusTrigger): number {
+		if (!trigger?.positions.length) return -1;
+		return Math.max(...trigger.positions.map((position) => position.column));
+	}
+
+	function scatterTriggerDelayBonus(
+		index: number,
+		trigger: BonusTrigger | null = activeSpinBonusTrigger,
+	): number {
+		const triggerCount = scatterTriggerColumnCount(index, trigger);
+		if (!triggerCount) return 0;
+
+		return (
+			triggerCount * (quickSpinEnabled ? 12 : 30) +
+			(index >= 3 ? (quickSpinEnabled ? 8 : 18) : index >= 2 ? (quickSpinEnabled ? 4 : 10) : 0)
+		);
+	}
+
+	function scatterTriggerBrakeLead(
+		index: number,
+		trigger: BonusTrigger | null = activeSpinBonusTrigger,
+	): number {
+		if (!trigger || index !== lastScatterTriggerColumn(trigger)) return 0;
+
+		return (
+			(quickSpinEnabled ? 24 : 54) +
+			(scatterTriggerColumnCount(index, trigger) - 1) * (quickSpinEnabled ? 8 : 18)
+		);
+	}
+
 	function anticipationDelayBonus(index: number, signal: ReelAnticipation): number {
 		if (index < 2) return 0;
-		if (signal === 'wheel') return quickSpinEnabled ? 70 : 150;
-		if (signal === 'premium') return quickSpinEnabled ? 36 : 84;
-		return 0;
+		const base =
+			signal === 'wheel'
+				? quickSpinEnabled
+					? 70
+					: 150
+				: signal === 'premium'
+					? quickSpinEnabled
+						? 36
+						: 84
+					: 0;
+		if (!activeBonusSpinMode) return base;
+		if (activeBonusSpinMode === 'regular') {
+			return (
+				base +
+				(signal === 'wheel'
+					? quickSpinEnabled
+						? 22
+						: 54
+					: signal === 'premium'
+						? quickSpinEnabled
+							? 10
+							: 24
+						: 0)
+			);
+		}
+		return (
+			base +
+			(signal === 'wheel'
+				? (quickSpinEnabled ? 28 : 66) + activeBonusDangerLevel * (quickSpinEnabled ? 18 : 42)
+				: signal === 'premium'
+					? (quickSpinEnabled ? 12 : 28) + activeBonusDangerLevel * (quickSpinEnabled ? 10 : 24)
+					: 0)
+		);
 	}
 
 	function finalReelBrakeLead(signal: ReelAnticipation): number {
-		if (signal === 'wheel') return quickSpinEnabled ? 120 : 240;
-		if (signal === 'premium') return quickSpinEnabled ? 70 : 140;
-		return 0;
+		const base =
+			signal === 'wheel'
+				? quickSpinEnabled
+					? 120
+					: 240
+				: signal === 'premium'
+					? quickSpinEnabled
+						? 70
+						: 140
+					: 0;
+		if (!activeBonusSpinMode) return base;
+		if (activeBonusSpinMode === 'regular') {
+			return base + (signal === 'none' ? 0 : quickSpinEnabled ? 24 : 52);
+		}
+		return (
+			base +
+			(signal === 'none'
+				? 0
+				: (quickSpinEnabled ? 30 : 70) + activeBonusDangerLevel * (quickSpinEnabled ? 18 : 44))
+		);
 	}
 
 	function reelDelayLabel(index: number): string {
 		const totalDelay =
-			timingConfig.reelStopStep * index + anticipationDelayBonus(index, reelAnticipation[index]);
+			timingConfig.reelStopStep * index +
+			anticipationDelayBonus(index, reelAnticipation[index]) +
+			scatterTriggerDelayBonus(index);
 		return totalDelay === 0 ? '0ms' : `+${totalDelay}ms`;
 	}
 
@@ -703,14 +994,51 @@
 
 	function bonusHistorySummary(mode: BonusMode, spins: number, total: number, bet: number): string {
 		const totalMultiplier = bet > 0 ? total / bet : 0;
-		return `${bonusModeLabel(mode)} buy · ${spins} spins · ${formatMultiplier(totalMultiplier)}`;
+		return `${bonusModeLabel(mode)} buy | ${spins} spins | ${formatMultiplier(totalMultiplier)}`;
+	}
+
+	async function playFeatureTransition(
+		phase: FeatureTransitionState['phase'],
+		mode: BonusMode,
+		totalSpins: number,
+		stickyWheels: boolean,
+		totalWin = 0,
+	): Promise<void> {
+		featureTransitionState = {
+			phase,
+			mode,
+			totalSpins,
+			triggerCount: bonusTriggerCount(mode),
+			stickyWheels,
+			totalWin,
+		};
+		await wait(stickyWheels ? (phase === 'intro' ? 1420 : 1200) : phase === 'intro' ? 720 : 620);
+		featureTransitionState = null;
+	}
+
+	async function playBonusTriggerReveal(trigger: BonusTrigger): Promise<void> {
+		const stickyWheels = BONUS_ROUND_CONFIG[trigger.mode].stickyWheels;
+		const totalSpins = BONUS_ROUND_CONFIG[trigger.mode].freeSpins;
+		bonusTriggerRevealState = {
+			...trigger,
+			totalSpins,
+			stickyWheels,
+		};
+		emitAudioCue('bonus.trigger.reveal', {
+			mode: trigger.mode,
+			count: trigger.count,
+			totalSpins,
+			stickyWheels,
+		});
+		await wait(trigger.mode === 'super' ? 1280 : 980);
+		bonusTriggerRevealState = null;
 	}
 
 	function loopModelRead(signals: LoopSignals): { title: string; detail: string } {
 		if (!signals.liveSpins) {
 			return {
 				title: 'Waiting on live spins',
-				detail: 'Run live-strip spins to read dead space, wheel frequency, and payout rhythm.',
+				detail: 'Run base-game spins to read dead space, wheel frequency, and payout rhythm.',
 			};
 		}
 
@@ -959,6 +1287,7 @@
 			note: LIVE_SPIN_NOTE,
 			bet: selectedSourceBet,
 			sourceType: 'live',
+			bonusTrigger: math.bonusTrigger,
 			math,
 		};
 	}
@@ -973,6 +1302,7 @@
 					note: currentScenario.note,
 					bet: currentScenario.bet,
 					sourceType: 'forced',
+					bonusTrigger: resolveBonusTriggerFromBoard(currentScenario.board),
 				};
 	}
 
@@ -1011,6 +1341,7 @@
 		spin: number,
 		bet: number,
 		balanceAfter: number,
+		source: 'buy' | 'trigger' = 'buy',
 	): void {
 		const lineCount = session.spins.reduce((sum, item) => sum + item.lineResults.length, 0);
 		const wheelCount = session.blueWheels + session.redWheels;
@@ -1026,7 +1357,7 @@
 		spinHistory = [
 			{
 				spin,
-				source: `${bonusModeLabel(mode)} Bonus Buy`,
+				source: source === 'buy' ? `${bonusBuyTitle(mode)}` : `${bonusFeatureLabel(mode)}`,
 				sourceType: 'bonus',
 				bet,
 				balanceAfter,
@@ -1034,7 +1365,14 @@
 				totalWin: session.totalPaid,
 				lineCount,
 				wheelCount,
-				summary: bonusHistorySummary(mode, session.spins.length, session.totalPaid, bet),
+				summary:
+					source === 'buy'
+						? `${bonusModeLabel(mode)} buy | ${session.spins.length} spins | ${formatMultiplier(
+								bet > 0 ? session.totalPaid / bet : 0,
+							)}`
+						: `${bonusModeLabel(mode)} trigger | ${session.spins.length} spins | ${formatMultiplier(
+								bet > 0 ? session.totalPaid / bet : 0,
+							)}`,
 			},
 			...spinHistory,
 		].slice(0, 8);
@@ -1091,6 +1429,74 @@
 		return source.map((row) => row[column]);
 	}
 
+	function applyResolvedWheelsToBoard(
+		source: SymbolId[][],
+		resolvedWheels: Record<string, ResolvedWheelState> = {},
+	): SymbolId[][] {
+		if (!Object.keys(resolvedWheels).length) return source;
+
+		const next = cloneBoard(source);
+		for (const wheel of Object.values(resolvedWheels)) {
+			next[wheel.row][wheel.column] = wheel.type === 'blue' ? 'blueWheel' : 'redWheel';
+		}
+
+		return next;
+	}
+
+	function applyLockedCellsToBoard(
+		source: SymbolId[][],
+		lockedGrid: LockedCellState[][] = lockedCells,
+	): SymbolId[][] {
+		const next = cloneBoard(source);
+		for (const [rowIndex, row] of lockedGrid.entries()) {
+			for (const [columnIndex, cell] of row.entries()) {
+				if (!cell.locked || !cell.symbol) continue;
+				next[rowIndex][columnIndex] = cell.symbol;
+			}
+		}
+		return next;
+	}
+
+	function lockResolvedCellsInColumn(
+		values: SymbolId[],
+		column: number,
+		resolvedWheels: Record<string, ResolvedWheelState> = {},
+	): SymbolId[] {
+		return values.map((value, row) => {
+			const wheel = resolvedWheels[cellKey(row, column)];
+			if (!wheel) return value;
+			return wheel.type === 'blue' ? 'blueWheel' : 'redWheel';
+		});
+	}
+
+	function lockCellsInColumn(
+		values: SymbolId[],
+		column: number,
+		lockedGrid: LockedCellState[][] = lockedCells,
+	): SymbolId[] {
+		return values.map((value, row) => {
+			const cell = lockedGrid[row]?.[column];
+			return cell?.locked && cell.symbol ? cell.symbol : value;
+		});
+	}
+
+	function lockWheelCell(
+		grid: LockedCellState[][],
+		wheel: LineResult['wheels'][number],
+		symbol: SymbolId,
+	): LockedCellState[][] {
+		const next = cloneLockedCellGrid(grid);
+		next[wheel.row][wheel.column] = {
+			locked: true,
+			multiplierValue: wheel.total,
+			symbol,
+			type: wheel.type,
+			outer: wheel.outer ?? null,
+			inner: wheel.inner ?? null,
+		};
+		return next;
+	}
+
 	function segmentRotation(index: number): number {
 		return -index * WHEEL_SEGMENT_ANGLE;
 	}
@@ -1141,7 +1547,7 @@
 		};
 		latestAudioCue = cue;
 		latestAudioCueDetail = detail;
-		if (typeof window !== 'undefined') {
+		if (soundEnabled && typeof window !== 'undefined') {
 			window.dispatchEvent(new CustomEvent('dual-wheel-audio-cue', { detail }));
 		}
 	}
@@ -1265,31 +1671,27 @@
 		void spinPrototype();
 	}
 
-	async function handleBonusBuy(mode: BonusMode): Promise<void> {
-		if (!isLiveSource || roundState !== 'idle' || autoplayEnabled) return;
-
-		const cost = bonusBuyCost(mode);
-		if (liveBalance < cost) {
-			emitAudioCue('bonus.buy.blocked', {
-				mode,
-				cost,
-				balance: liveBalance,
-			});
-			return;
-		}
-
-		stopAutoplayQueue();
-		clearWork();
-		clearRoundVisuals();
-
-		const session = simulateBonusRoundSession(mode, selectedSourceBet);
-		const stickyWheels = BONUS_ROUND_CONFIG[mode].stickyWheels;
+	async function runBonusSession(
+		mode: BonusMode,
+		session: ReturnType<typeof simulateBonusRoundSession>,
+		options: {
+			cost?: number;
+			source?: 'buy' | 'trigger';
+			settleBalance?: boolean;
+		} = {},
+	): Promise<void> {
+		const cost = options.cost ?? 0;
+		const source = options.source ?? 'buy';
+		const shouldSettleBalance = options.settleBalance ?? isLiveSource;
+		const stickyWheels = mode === 'super' && BONUS_ROUND_CONFIG[mode].stickyWheels;
 		let stickyResolvedWheels: Record<string, ResolvedWheelState> = {};
+		let stickyLockedCells = createLockedCellGrid();
 		let accumulatedWin = 0;
 
-		betSize = selectedSourceBet;
 		lastPaidWin = 0;
-		liveBalance = Math.max(0, liveBalance - cost);
+		if (shouldSettleBalance && cost > 0) {
+			liveBalance = Math.max(0, liveBalance - cost);
+		}
 		bonusPreviewState = {
 			mode,
 			totalSpins: session.spins.length,
@@ -1300,13 +1702,14 @@
 			stickyWheels,
 		};
 
-		emitAudioCue('bonus.buy.start', {
+		emitAudioCue(source === 'buy' ? 'bonus.buy.start' : 'bonus.trigger.start', {
 			mode,
 			cost,
 			spins: session.spins.length,
 			bet: selectedSourceBet,
 			stickyWheels,
 		});
+		await playFeatureTransition('intro', mode, session.spins.length, stickyWheels);
 
 		for (const [index, bonusSpin] of session.spins.entries()) {
 			clearRoundVisuals({
@@ -1315,15 +1718,21 @@
 			});
 			spinCounter += 1;
 			roundState = 'spinning';
-			currentSpinMood =
-				bonusSpin.totalWin >= selectedSourceBet * 50
-					? 'big'
-					: bonusSpin.spinMood === 'dead'
-						? stickyWheels
-							? 'feature'
-							: 'base'
-						: bonusSpin.spinMood;
-			reelAnticipation = deriveReelAnticipation(bonusSpin.board, bonusSpin.lineResults);
+			const stickyCountBeforeSpin = stickyWheels
+				? countLockedMultiplierCells(stickyLockedCells)
+				: 0;
+			activeBonusSpinMode = mode;
+			activeBonusDangerLevel =
+				mode === 'super'
+					? Math.min(Math.max(stickyCountBeforeSpin + (index > 0 ? 1 : 0), 1), 4)
+					: 1;
+			currentSpinMood = deriveBonusSpinMood(mode, bonusSpin, stickyCountBeforeSpin);
+			reelAnticipation = enhanceBonusReelAnticipation(
+				mode,
+				bonusSpin.board,
+				bonusSpin.lineResults,
+				stickyCountBeforeSpin,
+			);
 			timingConfig = getTimingConfig(quickSpinEnabled, currentSpinMood);
 			bonusPreviewState = {
 				mode,
@@ -1337,6 +1746,7 @@
 
 			if (stickyWheels && index > 0) {
 				resolvedWheelStates = { ...stickyResolvedWheels };
+				lockedCells = cloneLockedCellGrid(stickyLockedCells);
 			}
 
 			emitAudioCue('bonus.spin.start', {
@@ -1344,10 +1754,18 @@
 				spin: index + 1,
 				totalSpins: session.spins.length,
 				stickyWheels,
+				source,
 			});
 
-			await animateReelsTo(cloneBoard(bonusSpin.board), reelAnticipation);
-			displayBoard = cloneBoard(bonusSpin.board);
+			await animateReelsTo(
+				cloneBoard(bonusSpin.board),
+				reelAnticipation,
+				stickyWheels ? stickyLockedCells : createLockedCellGrid(),
+			);
+			displayBoard = applyLockedCellsToBoard(
+				cloneBoard(bonusSpin.board),
+				stickyWheels ? stickyLockedCells : createLockedCellGrid(),
+			);
 			lineResults = bonusSpin.lineResults;
 			totalWin = bonusSpin.totalWin;
 
@@ -1372,10 +1790,16 @@
 			}
 
 			const fullResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
-			resolvedWheelStates = fullResolvedState;
 			if (stickyWheels) {
-				stickyResolvedWheels = fullResolvedState;
+				stickyResolvedWheels = { ...resolvedWheelStates };
+				stickyLockedCells = cloneLockedCellGrid(lockedCells);
+			} else {
+				resolvedWheelStates = fullResolvedState;
 			}
+			displayBoard = applyLockedCellsToBoard(
+				cloneBoard(bonusSpin.board),
+				stickyWheels ? stickyLockedCells : createLockedCellGrid(),
+			);
 
 			if (bonusSpin.lineResults.length) {
 				await playLineShowcase(bonusSpin.lineResults);
@@ -1397,9 +1821,20 @@
 				spin: index + 1,
 				spinWin: bonusSpin.totalWin,
 				accumulatedWin,
+				source,
 			});
 		}
 
+		activeBonusSpinMode = null;
+		activeBonusDangerLevel = 0;
+
+		await playFeatureTransition(
+			'outro',
+			mode,
+			session.spins.length,
+			stickyWheels,
+			session.totalPaid,
+		);
 		totalWin = session.totalPaid;
 		if (session.totalPaid > 0) {
 			await playTotalWinCountUp();
@@ -1410,16 +1845,45 @@
 			session,
 			spinCounter,
 			selectedSourceBet,
-			liveBalance + session.totalPaid,
+			shouldSettleBalance ? liveBalance + session.totalPaid : liveBalance,
+			source,
 		);
-		settleLiveBalance(session.totalPaid);
-		emitAudioCue('bonus.buy.complete', {
+		if (shouldSettleBalance) {
+			settleLiveBalance(session.totalPaid);
+		}
+		emitAudioCue(source === 'buy' ? 'bonus.buy.complete' : 'bonus.trigger.complete', {
 			mode,
 			totalWin: session.totalPaid,
 			stickyWheels,
 			spins: session.spins.length,
 		});
 		finishRound();
+	}
+
+	async function handleBonusBuy(mode: BonusMode): Promise<void> {
+		if (!isLiveSource || roundState !== 'idle' || autoplayEnabled) return;
+
+		const cost = bonusBuyCost(mode);
+		if (liveBalance < cost) {
+			emitAudioCue('bonus.buy.blocked', {
+				mode,
+				cost,
+				balance: liveBalance,
+			});
+			return;
+		}
+
+		stopAutoplayQueue();
+		clearWork();
+		clearRoundVisuals();
+
+		const session = simulateBonusRoundSession(mode, selectedSourceBet);
+		betSize = selectedSourceBet;
+		await runBonusSession(mode, session, {
+			cost,
+			source: 'buy',
+			settleBalance: true,
+		});
 	}
 
 	function updateLiveBet(direction: -1 | 1): void {
@@ -1434,6 +1898,10 @@
 		lastPaidWin = 0;
 		liveLoopSignals = createLoopSignals();
 		bonusPreviewState = null;
+		featureTransitionState = null;
+		resolvedWheelStates = {};
+		lockedCells = createLockedCellGrid();
+		bonusTriggerRevealState = null;
 		if (isLiveSource) {
 			betSize = selectedSourceBet;
 		}
@@ -1441,6 +1909,28 @@
 			balance: liveBalance,
 			bet: selectedSourceBet,
 		});
+	}
+
+	function toggleSound(): void {
+		soundEnabled = !soundEnabled;
+		latestAudioCue = soundEnabled ? 'sound.enabled' : 'sound.disabled';
+		latestAudioCueDetail = null;
+	}
+
+	function cancelAutoplayConfirm(): void {
+		autoplayConfirmOpen = false;
+	}
+
+	function confirmAutoplay(): void {
+		if (!canSpin) {
+			autoplayConfirmOpen = false;
+			return;
+		}
+		autoplayConfirmOpen = false;
+		autoplayEnabled = true;
+		autoplaySpinsRemaining = autoplayPreset;
+		emitAudioCue('autoplay.start', { count: autoplayPreset, bet: selectedSourceBet });
+		void spinPrototype();
 	}
 
 	function clearWork(): void {
@@ -1470,8 +1960,14 @@
 		activeLineIndex = -1;
 		showPayoutChip = false;
 		activeWheelState = null;
+		activeBonusTrigger = null;
+		activeSpinBonusTrigger = null;
+		bonusTriggerRevealState = null;
+		activeBonusSpinMode = null;
+		activeBonusDangerLevel = 0;
 		if (!options.preserveResolvedWheels) {
 			resolvedWheelStates = {};
+			lockedCells = createLockedCellGrid();
 		}
 		wheelResultBursts = [];
 		reelAnticipation = Array(REELS).fill('none');
@@ -1480,8 +1976,10 @@
 		if (!options.preserveBonusPreview) {
 			bonusPreviewState = null;
 		}
+		featureTransitionState = null;
 		clearStopRequest();
 		clearResolveSkip();
+		autoplayConfirmOpen = false;
 	}
 
 	function settleLiveBalance(payout: number): void {
@@ -1513,8 +2011,11 @@
 		);
 	}
 
-	function storeResolvedWheelState(wheel: LineResult['wheels'][number]): void {
+	function storeResolvedWheelState(wheel: LineResult['wheels'][number]): boolean {
 		const key = wheelPositionKey(wheel);
+		const stickyLockNew =
+			Boolean(bonusPreviewState?.mode === 'super' && bonusPreviewState.stickyWheels) &&
+			!lockedCells[wheel.row]?.[wheel.column]?.locked;
 		resolvedWheelStates = {
 			...resolvedWheelStates,
 			[key]:
@@ -1534,9 +2035,16 @@
 							inner: wheel.inner,
 						},
 		};
+
+		if (bonusPreviewState?.mode === 'super' && bonusPreviewState.stickyWheels) {
+			const lockedSymbol = wheel.type === 'blue' ? 'blueWheel' : 'redWheel';
+			lockedCells = lockWheelCell(lockedCells, wheel, lockedSymbol);
+		}
+
+		return stickyLockNew;
 	}
 
-	function showWheelResultBurst(wheel: LineResult['wheels'][number]): void {
+	function showWheelResultBurst(wheel: LineResult['wheels'][number], sticky = false): void {
 		wheelResultBurstId += 1;
 		const burst = {
 			id: wheelResultBurstId,
@@ -1546,6 +2054,7 @@
 			total: wheel.total,
 			outer: wheel.outer,
 			inner: wheel.inner,
+			sticky,
 		};
 		wheelResultBursts = [
 			...wheelResultBursts.filter(
@@ -1715,12 +2224,15 @@
 	async function animateReelsTo(
 		targetBoard: SymbolId[][],
 		anticipation: ReelAnticipation[],
+		lockedGrid: LockedCellState[][] = createLockedCellGrid(),
+		bonusTrigger: BonusTrigger | null = null,
 	): Promise<void> {
 		reelStates = Array(REELS).fill('spinning');
-		displayBoard = randomLiveBaseGameBoard();
+		displayBoard = applyLockedCellsToBoard(randomLiveBaseGameBoard(), lockedGrid);
 
+		const resolvedTargetBoard = applyLockedCellsToBoard(targetBoard, lockedGrid);
 		const targetColumns = Array.from({ length: REELS }, (_, column) =>
-			columnValues(targetBoard, column),
+			lockCellsInColumn(columnValues(resolvedTargetBoard, column), column, lockedGrid),
 		);
 		const spinStart = performance.now();
 		const manualStopStep = quickSpinEnabled ? 34 : 56;
@@ -1730,13 +2242,17 @@
 			Array.from({ length: REELS }, (_, column) => {
 				return new Promise<void>((resolve) => {
 					const swapInterval = timingConfig.reelInterval + column * (quickSpinEnabled ? 2 : 5);
-					const naturalBrakeLead =
-						column === REELS - 1 ? finalReelBrakeLead(anticipation[column]) : 0;
+					const scatterDelay = scatterTriggerDelayBonus(column, bonusTrigger);
+					const naturalBrakeLead = Math.max(
+						column === REELS - 1 ? finalReelBrakeLead(anticipation[column]) : 0,
+						scatterTriggerBrakeLead(column, bonusTrigger),
+					);
 					const naturalStopAt =
 						spinStart +
 						timingConfig.reelStopBase +
 						column * timingConfig.reelStopStep +
-						anticipationDelayBonus(column, anticipation[column]);
+						anticipationDelayBonus(column, anticipation[column]) +
+						scatterDelay;
 					let lastSwap = spinStart - swapInterval;
 					let braking = false;
 					let settled = false;
@@ -1799,14 +2315,26 @@
 											brakeProgress,
 										)
 									: randomColumnWindow(column);
-							displayBoard = replaceColumn(displayBoard, column, nextColumn);
+							displayBoard = applyResolvedWheelsToBoard(
+								replaceColumn(
+									displayBoard,
+									column,
+									lockCellsInColumn(nextColumn, column, lockedGrid),
+								),
+								{},
+							);
+							displayBoard = applyLockedCellsToBoard(displayBoard, lockedGrid);
 							lastSwap = now;
 						}
 
 						if (now >= effectiveStopAt) {
 							settled = true;
 							reelStates = reelStates.map((state, index) => (index === column ? 'landing' : state));
-							displayBoard = replaceColumn(displayBoard, column, targetColumns[column]);
+							displayBoard = applyResolvedWheelsToBoard(
+								replaceColumn(displayBoard, column, targetColumns[column]),
+								{},
+							);
+							displayBoard = applyLockedCellsToBoard(displayBoard, lockedGrid);
 							emitAudioCue('reel.stop', {
 								reel: column + 1,
 								final: column === REELS - 1,
@@ -1850,13 +2378,22 @@
 				});
 				await waitMaybeSkip(timingConfig.blueResolve);
 				activeWheelState = { ...activeWheelState, phase: 'blue-locked' } as ActiveWheelState;
-				storeResolvedWheelState(wheel);
-				showWheelResultBurst(wheel);
+				const stickyLock = storeResolvedWheelState(wheel);
+				showWheelResultBurst(wheel, stickyLock);
 				emitAudioCue('wheel.blue.lock', {
 					row: wheel.row,
 					column: wheel.column,
 					total: wheel.total,
 				});
+				if (stickyLock) {
+					emitAudioCue('bonus.sticky.lock', {
+						row: wheel.row,
+						column: wheel.column,
+						type: wheel.type,
+						total: wheel.total,
+						locked: countLockedMultiplierCells(lockedCells),
+					});
+				}
 				await waitMaybeSkip(timingConfig.blueLocked);
 				activeWheelState = null;
 				continue;
@@ -1891,8 +2428,8 @@
 			});
 			await waitMaybeSkip(timingConfig.redInnerResolve);
 			activeWheelState = { ...activeWheelState, phase: 'red-locked' } as ActiveWheelState;
-			storeResolvedWheelState(wheel);
-			showWheelResultBurst(wheel);
+			const stickyLock = storeResolvedWheelState(wheel);
+			showWheelResultBurst(wheel, stickyLock);
 			emitAudioCue('wheel.red.final', {
 				row: wheel.row,
 				column: wheel.column,
@@ -1900,6 +2437,17 @@
 				inner: wheel.inner ?? 0,
 				total: wheel.total,
 			});
+			if (stickyLock) {
+				emitAudioCue('bonus.sticky.lock', {
+					row: wheel.row,
+					column: wheel.column,
+					type: wheel.type,
+					total: wheel.total,
+					outer: wheel.outer ?? 0,
+					inner: wheel.inner ?? 0,
+					locked: countLockedMultiplierCells(lockedCells),
+				});
+			}
 			await waitMaybeSkip(timingConfig.redLocked);
 			activeWheelState = null;
 		}
@@ -2088,13 +2636,26 @@
 		const results =
 			source.math?.lineResults ?? evaluateBoard(finalBoard, source.wheelResults, betSize);
 		const wheelQueue = source.math?.wheelQueue ?? buildWheelQueue(results);
+		const bonusTrigger = source.math?.bonusTrigger ?? source.bonusTrigger ?? null;
 		reelAnticipation = deriveReelAnticipation(finalBoard, results);
-		currentSpinMood = source.math?.spinMood ?? deriveSpinMood(results, betSize);
+		currentSpinMood =
+			source.math?.spinMood ??
+			(bonusTrigger?.mode === 'super'
+				? 'big'
+				: bonusTrigger
+					? 'feature'
+					: deriveSpinMood(results, betSize));
 		timingConfig = getTimingConfig(quickSpinEnabled, currentSpinMood);
-		await animateReelsTo(finalBoard, reelAnticipation);
+		activeSpinBonusTrigger = bonusTrigger;
+		try {
+			await animateReelsTo(finalBoard, reelAnticipation, createLockedCellGrid(), bonusTrigger);
+		} finally {
+			activeSpinBonusTrigger = null;
+		}
 		displayBoard = finalBoard;
 		lineResults = results;
 		totalWin = source.math?.totalWin ?? results.reduce((sum, result) => sum + result.payout, 0);
+		activeBonusTrigger = bonusTrigger;
 		recordSpinHistory(
 			source,
 			results,
@@ -2111,9 +2672,11 @@
 			lines: results.length,
 			wheels: wheelQueue.length,
 			totalWin,
+			bonusMode: bonusTrigger?.mode ?? null,
+			bonusCount: bonusTrigger?.count ?? 0,
 		});
 
-		if (!results.length) {
+		if (!results.length && !bonusTrigger) {
 			emitAudioCue('spin.dead', {
 				lines: 0,
 				wheels: 0,
@@ -2138,6 +2701,17 @@
 
 		if (liveSpin) {
 			settleLiveBalance(totalWin);
+		}
+
+		if (bonusTrigger) {
+			await playBonusTriggerReveal(bonusTrigger);
+			const session = simulateBonusRoundSession(bonusTrigger.mode, source.bet);
+			await runBonusSession(bonusTrigger.mode, session, {
+				cost: 0,
+				source: 'trigger',
+				settleBalance: liveSpin,
+			});
+			return;
 		}
 
 		finishRound();
@@ -2171,6 +2745,21 @@
 		resetView();
 	}
 
+	function handleGlobalKeydown(event: KeyboardEvent): void {
+		if (event.code !== 'Space') return;
+		const target = event.target as HTMLElement | null;
+		if (
+			target &&
+			(target.closest('button, input, select, textarea, [contenteditable="true"]') ||
+				target.isContentEditable)
+		) {
+			return;
+		}
+		if (!canSpin || autoplayConfirmOpen) return;
+		event.preventDefault();
+		handleSpinAction();
+	}
+
 	function toggleQuickSpin(): void {
 		if (roundState !== 'idle' || autoplayEnabled) return;
 		quickSpinEnabled = !quickSpinEnabled;
@@ -2181,15 +2770,14 @@
 			autoplayEnabled = false;
 			autoplaySpinsRemaining = 0;
 			stopAutoplayQueue();
+			autoplayConfirmOpen = false;
 			emitAudioCue('autoplay.stop', { remaining: 0 });
 			return;
 		}
 
 		if (!canSpin) return;
-		autoplayEnabled = true;
-		autoplaySpinsRemaining = autoplayPreset;
-		emitAudioCue('autoplay.start', { count: autoplayPreset, bet: selectedSourceBet });
-		void spinPrototype();
+		autoplayConfirmOpen = true;
+		emitAudioCue('autoplay.prompt', { count: autoplayPreset, bet: selectedSourceBet });
 	}
 
 	function wheelSummary(result: LineResult): string {
@@ -2270,6 +2858,14 @@
 		}
 	}
 
+	onMount(() => {
+		if (typeof window === 'undefined') return;
+		window.addEventListener('keydown', handleGlobalKeydown);
+		return () => {
+			window.removeEventListener('keydown', handleGlobalKeydown);
+		};
+	});
+
 	onDestroy(() => {
 		clearWork();
 	});
@@ -2297,10 +2893,11 @@
 	</div>
 	<section class="hero">
 		<div class="hero-copy">
-			<p class="eyebrow">Stake Engine Preview</p>
-			<h1>Dual Wheel Reels</h1>
+			<p class="eyebrow">Live Slot Surface</p>
+			<h1>Dual Wild Wheels</h1>
 			<p class="hero-note">
-				Live 5x5 reels with weighted strips, wheel tension, and payout-first staging.
+				A 5x5 base game built around rare blue boosts, rarer red dual wheels, and two paid free-spin
+				features.
 			</p>
 		</div>
 		<div class="hero-status">
@@ -2310,19 +2907,23 @@
 			</div>
 			<div class="hero-status-block">
 				<span>Balance</span>
-				<strong>GC {formatValue(liveBalance)}</strong>
+				<strong>{formatCurrency(liveBalance)}</strong>
 			</div>
 			<div class="hero-status-block">
-				<span>Stake</span>
-				<strong>GC {formatValue(selectedSourceBet)}</strong>
+				<span>Bet</span>
+				<strong>{formatCurrency(selectedSourceBet)}</strong>
 			</div>
 			<div class="hero-status-block">
-				<span>Audio Cue</span>
-				<strong>{latestAudioCue}</strong>
+				<span>Mode</span>
+				<strong
+					>{bonusPreviewState
+						? bonusFeatureLabel(bonusPreviewState.mode)
+						: selectedSourceLabel}</strong
+				>
 			</div>
 			<div class="hero-status-block">
-				<span>Flow</span>
-				<strong>{currentSpinMood}</strong>
+				<span>Pace</span>
+				<strong>{quickSpinEnabled ? 'Quick' : 'Standard'}</strong>
 			</div>
 		</div>
 	</section>
@@ -2335,32 +2936,40 @@
 				class:stage-tone-big={activeStageTone === 'big'}
 				class:stage-feature-mode={Boolean(bonusPreviewState)}
 				class:stage-feature-super={bonusPreviewState?.mode === 'super'}
+				class:stage-transition-active={Boolean(featureTransitionState)}
+				class:stage-transition-super={featureTransitionState?.mode === 'super'}
+				class:stage-bonus-trigger={Boolean(bonusTriggerRevealState)}
+				class:stage-bonus-trigger-super={bonusTriggerRevealState?.mode === 'super'}
 			>
 				<div class="stage-topline">
 					<div>
-						<p class="panel-label">Game Stage</p>
-						<h2>Main Reels</h2>
+						<p class="panel-label">Reels</p>
+						<h2>Main Grid</h2>
 					</div>
 					<div class="stage-meta">
-						<div><span>Spin</span><strong>{spinCounter}</strong></div>
+						<div><span>Round</span><strong>{spinCounter}</strong></div>
 						<div>
-							<span>Source</span>
+							<span>Mode</span>
 							<strong
 								>{bonusPreviewState
-									? `${bonusModeLabel(bonusPreviewState.mode)} Bonus`
-									: selectedSourceLabel}</strong
+									? bonusFeatureLabel(bonusPreviewState.mode)
+									: bonusTriggerRevealState
+										? bonusFeatureLabel(bonusTriggerRevealState.mode)
+										: selectedSourceLabel}</strong
 							>
 						</div>
 						<div>
-							<span>{bonusPreviewState ? 'Free Spins' : 'Auto'}</span>
+							<span>{bonusPreviewState ? 'Free Spins' : 'Autoplay'}</span>
 							<strong
 								>{bonusPreviewState
 									? `${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins}`
-									: autoplayQueueLabel}</strong
+									: bonusTriggerRevealState
+										? `${bonusTriggerRevealState.count} scatters`
+										: autoplayQueueLabel}</strong
 							>
 						</div>
 						<div>
-							<span>Sequence</span><strong
+							<span>Win Focus</span><strong
 								>{lineResults.length
 									? `${activeLineIndex >= 0 ? activeLineIndex + 1 : lineResults.length}/${lineResults.length}`
 									: '0/0'}</strong
@@ -2376,11 +2985,19 @@
 						aria-live="polite"
 					>
 						<div class="feature-banner-copy">
-							<span class="feature-banner-kicker"
-								>{bonusModeLabel(bonusPreviewState.mode)} Bonus</span
+							<span class="feature-banner-kicker">{bonusFeatureLabel(bonusPreviewState.mode)}</span>
+							<strong
+								>{bonusPreviewState.currentSpin === 0
+									? `${bonusTriggerCount(bonusPreviewState.mode)} scatters unlock ${bonusPreviewState.totalSpins} free spins`
+									: `${bonusFeatureLabel(bonusPreviewState.mode)} | ${featureSpinsRemaining} remaining`}</strong
 							>
-							<strong>{featureBannerTitle}</strong>
-							<em>{featureBannerNote}</em>
+							<em
+								>{bonusPreviewState.currentSpin === 0
+									? bonusBuyDescription(bonusPreviewState.mode)
+									: `Spin ${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins} | ${formatCurrency(
+											bonusPreviewState.accumulatedWin,
+										)} collected${bonusPreviewState.stickyWheels ? ' | sticky values active' : ''}`}</em
+							>
 						</div>
 						<div class="feature-banner-metrics">
 							<div class="feature-banner-stat">
@@ -2389,15 +3006,107 @@
 							</div>
 							<div class="feature-banner-stat">
 								<span>Collected</span>
-								<strong>GC {formatValue(bonusPreviewState.accumulatedWin)}</strong>
+								<strong>{formatCurrency(bonusPreviewState.accumulatedWin)}</strong>
 							</div>
+							{#if bonusPreviewState.stickyWheels}
+								<div class="feature-banner-stat feature-banner-stat-hot">
+									<span>Locked</span>
+									<strong>{stickyLockCount}</strong>
+								</div>
+							{/if}
 						</div>
 						{#if bonusPreviewState.stickyWheels}
 							<div class="feature-sticky-pill">
 								<span>Sticky Wheels</span>
-								<strong>Any landed wheel keeps its resolved value for all 10 spins.</strong>
+								<strong
+									>Any landed wheel keeps its resolved value and locked cell for all 10 spins.</strong
+								>
 							</div>
 						{/if}
+						<div class="feature-progress-band">
+							<div class="feature-progress-copy">
+								<span>{bonusPreviewState.stickyWheels ? 'Sticky Build' : 'Feature Pace'}</span>
+								<strong
+									>{bonusPreviewState.currentSpin === 0
+										? 'Bonus entry loaded'
+										: bonusPreviewState.stickyWheels
+											? `${stickyLockCount} cells locked | ${formatMultiplier(featureCollectedMultiplier)} collected`
+											: `${formatMultiplier(featureCollectedMultiplier)} collected across ${bonusPreviewState.currentSpin} spins`}</strong
+								>
+							</div>
+							<div class="feature-progress-rail" aria-hidden="true">
+								<div
+									class:feature-progress-fill={true}
+									class:feature-progress-fill-super={bonusPreviewState.mode === 'super'}
+									style={`width:${Math.max(featureProgressRatio * 100, bonusPreviewState.currentSpin > 0 ? 8 : 0)}%`}
+								></div>
+							</div>
+						</div>
+					</div>
+				{/if}
+
+				{#if featureTransitionState}
+					<div
+						class:feature-transition-card={true}
+						class:feature-transition-card-intro={featureTransitionState.phase === 'intro'}
+						class:feature-transition-card-super={featureTransitionState.mode === 'super'}
+						class:feature-transition-card-outro={featureTransitionState.phase === 'outro'}
+						aria-live="polite"
+					>
+						<div class="feature-transition-copy">
+							<span class="feature-transition-kicker"
+								>{featureTransitionState.phase === 'intro'
+									? `${bonusFeatureLabel(featureTransitionState.mode)} unlocked`
+									: `${bonusFeatureLabel(featureTransitionState.mode)} closed`}</span
+							>
+							<strong>{bonusTransitionHeadline(featureTransitionState)}</strong>
+							<em>{bonusTransitionNote(featureTransitionState)}</em>
+						</div>
+						<div class="feature-transition-seals" aria-hidden="true">
+							{#each bonusTransitionSlots(featureTransitionState.mode) as slot}
+								<div
+									class:feature-trigger-seal={true}
+									class:feature-trigger-seal-super={featureTransitionState.mode === 'super'}
+								>
+									<span>{featureTransitionState.mode === 'super' ? 'Super' : 'Bonus'}</span>
+									<strong>{slot + 1}</strong>
+								</div>
+							{/each}
+						</div>
+						{#if featureTransitionState.phase === 'outro'}
+							<div class="feature-transition-total">
+								<span>Feature Win</span>
+								<strong>{formatCurrency(featureTransitionState.totalWin ?? 0)}</strong>
+							</div>
+						{/if}
+					</div>
+				{/if}
+
+				{#if bonusTriggerRevealState && !featureTransitionState && !bonusPreviewState}
+					<div
+						class:feature-transition-card={true}
+						class:bonus-trigger-card={true}
+						class:bonus-trigger-card-super={bonusTriggerRevealState.mode === 'super'}
+						aria-live="polite"
+					>
+						<div class="feature-transition-copy">
+							<span class="feature-transition-kicker"
+								>{bonusTriggerRevealState.count} scatters landed</span
+							>
+							<strong>{bonusTriggerRevealHeadline(bonusTriggerRevealState)}</strong>
+							<em>{bonusTriggerRevealNote(bonusTriggerRevealState)}</em>
+						</div>
+						<div class="feature-transition-seals" aria-hidden="true">
+							{#each bonusTriggerSlots(bonusTriggerRevealState.count) as slot}
+								<div
+									class:feature-trigger-seal={true}
+									class:feature-trigger-seal-super={bonusTriggerRevealState.mode === 'super'}
+								>
+									<span>Scatter</span>
+									<strong>{slot + 1}</strong>
+								</div>
+							{/each}
+						</div>
 					</div>
 				{/if}
 
@@ -2437,7 +3146,11 @@
 					{reelStates}
 					{roundState}
 					spinMood={currentSpinMood}
-					stickyResolvedWheelMode={Boolean(bonusPreviewState?.stickyWheels)}
+					{activeBonusTrigger}
+					bonusTriggerRevealActive={Boolean(bonusTriggerRevealState)}
+					stickyResolvedWheelMode={Boolean(
+						bonusPreviewState?.mode === 'super' && bonusPreviewState?.stickyWheels,
+					)}
 					{reelAnticipation}
 					{activeLine}
 					{activeLineTone}
@@ -2446,6 +3159,7 @@
 					{activePayoutPoint}
 					{activeWheelState}
 					{resolvedWheelStates}
+					{lockedCells}
 					{wheelResultBursts}
 					{blueWheelOverlayStyle}
 					{redWheelOverlayStyle}
@@ -2458,11 +3172,11 @@
 						<div class="console-bank-grid">
 							<div class="console-stat-tile">
 								<span>Balance</span>
-								<strong>GC {formatValue(liveBalance)}</strong>
+								<strong>{formatCurrency(liveBalance)}</strong>
 							</div>
 							<div class="console-stat-tile">
 								<span>Last Paid</span>
-								<strong>GC {formatValue(lastPaidWin)}</strong>
+								<strong>{formatCurrency(lastPaidWin)}</strong>
 							</div>
 							<div class="console-stat-tile">
 								<span>Net</span>
@@ -2503,27 +3217,58 @@
 								<button
 									class:toggle-button={true}
 									class:is-active={autoplayEnabled}
+									class:is-pending={autoplayConfirmOpen}
 									on:click={toggleAutoplay}
 									disabled={!canSpin && !autoplayEnabled}
 								>
-									{autoplayEnabled ? 'Stop Autoplay' : 'Autoplay'}
+									{autoplayEnabled
+										? 'Stop Autoplay'
+										: autoplayConfirmOpen
+											? 'Confirm Autoplay'
+											: 'Autoplay'}
+								</button>
+								<button
+									class:toggle-button={true}
+									class:is-active={!soundEnabled}
+									on:click={toggleSound}
+									disabled={roundState !== 'idle' && !soundEnabled}
+								>
+									{soundEnabled ? 'Sound On' : 'Sound Off'}
 								</button>
 							</div>
 						</div>
+						{#if autoplayConfirmOpen}
+							<div class="autoplay-confirm">
+								<div class="autoplay-confirm-copy">
+									<span>Autoplay confirmation</span>
+									<strong>Start {autoplayPreset} consecutive spins?</strong>
+									<em>Stake review requires autoplay to be confirmed before the first bet.</em>
+								</div>
+								<div class="autoplay-confirm-actions">
+									<button class="secondary-button" on:click={cancelAutoplayConfirm}>Cancel</button>
+									<button
+										class="secondary-button autoplay-confirm-start"
+										on:click={confirmAutoplay}
+									>
+										Start Autoplay
+									</button>
+								</div>
+							</div>
+						{/if}
 						<div class="console-action-note">
-							<span>Current Round</span>
+							<span>Action</span>
 							<strong
 								>{bonusPreviewState
-									? `${bonusModeLabel(bonusPreviewState.mode)} bonus live`
+									? `${bonusFeatureLabel(bonusPreviewState.mode)} live`
 									: statusLabel}</strong
 							>
 							<em
 								>{bonusPreviewState
-									? `${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins} free spins · GC ${formatValue(
+									? `${bonusPreviewState.currentSpin}/${bonusPreviewState.totalSpins} free spins | ${formatCurrency(
 											bonusPreviewState.accumulatedWin,
-										)} collected${bonusPreviewState.stickyWheels ? ' · sticky wheels locked' : ''}.`
+										)} collected${bonusPreviewState.stickyWheels ? ' | sticky wheels locked' : ''}.`
 									: isLiveSource
-										? 'Live strips, bankroll settlement, and shared wheel values by position.'
+										? 'Base game reels settle bankroll, line wins, and shared wheel values by position.'
 										: selectedSourceNote}</em
 							>
 						</div>
@@ -2540,12 +3285,12 @@
 								-
 							</button>
 							<div class="bet-stepper-readout">
-								<span>Current Bet</span>
-								<strong>GC {formatValue(selectedSourceBet)}</strong>
+								<span>Bet Size</span>
+								<strong>{formatCurrency(selectedSourceBet)}</strong>
 								<em
 									>{isLiveSource
-										? 'adjust between live rounds'
-										: 'forced scenario stake is fixed'}</em
+										? 'adjust between base-game rounds'
+										: 'showcase rounds keep a fixed stake'}</em
 								>
 							</div>
 							<button
@@ -2564,21 +3309,30 @@
 								on:click={() => void handleBonusBuy('regular')}
 								disabled={!canBuyRegular}
 							>
-								<span>Buy Regular</span>
-								<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.regular)}</strong>
+								<span>{bonusBuyTitle('regular')}</span>
+								<strong>{formatCurrency(regularBuyCost)}</strong>
+								<em
+									>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.regular)} stake | {BONUS_ROUND_CONFIG
+										.regular.freeSpins}
+									free spins</em
+								>
 							</button>
 							<button
 								class="secondary-button bonus-buy-button bonus-buy-button-super"
 								on:click={() => void handleBonusBuy('super')}
 								disabled={!canBuySuper}
 							>
-								<span>Buy Super</span>
-								<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.super)}</strong>
+								<span>{bonusBuyTitle('super')}</span>
+								<strong>{formatCurrency(superBuyCost)}</strong>
+								<em
+									>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.super)} stake | sticky wheels for
+									{BONUS_ROUND_CONFIG.super.freeSpins} spins</em
+								>
 							</button>
 						</div>
 						<p class="bonus-buy-note">
-							Regular and super buys preview {BONUS_ROUND_CONFIG.regular.freeSpins} free spins at the
-							live stake.
+							Regular buys run a hotter 10-spin feature. Super buys run a sticky-wheel 10-spin
+							feature and price from the live bet.
 						</p>
 					</div>
 				</div>
@@ -2595,15 +3349,23 @@
 						on:click={handleTotalWinOverlayClick}
 						on:keydown={handleTotalWinOverlayKeydown}
 					>
-						<p class="total-win-kicker">{totalWinKicker}</p>
-						<h3>{totalWinTitle}</h3>
-						<strong>{formatValue(animatedTotalWin)}</strong>
-						<span>{totalWinSubline}</span>
+						<p class="total-win-kicker">
+							{bonusPreviewState
+								? `${bonusFeatureLabel(bonusPreviewState.mode)} complete`
+								: 'Big Win'}
+						</p>
+						<h3>{bonusPreviewState ? 'Feature Win' : 'Round Win'}</h3>
+						<strong>{formatCurrency(animatedTotalWin)}</strong>
+						<span
+							>{bonusPreviewState
+								? `${formatMultiplier(totalMultiplier)} of stake`
+								: `${formatMultiplier(totalMultiplier)} of bet`}</span
+						>
 						{#if bonusPreviewState}
 							<small class="total-win-bonus-meta"
-								>{bonusPreviewState.totalSpins} spins · {bonusPreviewState.stickyWheels
+								>{bonusPreviewState.totalSpins} spins | {bonusPreviewState.stickyWheels
 									? 'sticky wheels'
-									: 'respin wheels'} · cost {formatMultiplier(
+									: 'hot wheel rate'} | cost {formatMultiplier(
 									bonusPreviewState.cost / selectedSourceBet,
 								)}</small
 							>
@@ -2617,14 +3379,14 @@
 
 			<section class="tools-strip">
 				<article class="tool-card">
-					<p class="panel-label">Round Source</p>
+					<p class="panel-label">Play Mode</p>
 					<select
 						bind:value={selectedScenarioKey}
 						on:change={handleScenarioChange}
 						disabled={roundState !== 'idle'}
 					>
 						<option value={LIVE_SPIN_KEY}>{LIVE_SPIN_LABEL}</option>
-						<optgroup label="Forced Tests">
+						<optgroup label="Showcase Spins">
 							{#each scenarios as scenario}
 								<option value={scenario.key}>{scenario.label}</option>
 							{/each}
@@ -2634,7 +3396,7 @@
 				</article>
 
 				<article class="tool-card">
-					<p class="panel-label">Rules Snapshot</p>
+					<p class="panel-label">Game Rules</p>
 					<div class="stat-grid">
 						<div class="mini-stat">
 							<span>RTP Target</span>
@@ -2691,6 +3453,43 @@
 						)}
 						band. The current live base loop tops out well below the 10,000x product target.
 					</p>
+					<div class="rule-mode-grid">
+						<div class="rule-mode-card">
+							<span>Base Game</span>
+							<strong>1x stake</strong>
+							<em>Line wins, wheel wins, and visible scatter triggers.</em>
+						</div>
+						<div class="rule-mode-card">
+							<span>Regular Free Spins</span>
+							<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.regular)} buy cost</strong>
+							<em
+								>{BONUS_ROUND_CONFIG.regular.freeSpins} spins, hotter wheel rate, no sticky locks.</em
+							>
+						</div>
+						<div class="rule-mode-card">
+							<span>Super Free Spins</span>
+							<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.super)} buy cost</strong>
+							<em
+								>{BONUS_ROUND_CONFIG.super.freeSpins} spins, sticky wheels, persistent locked values.</em
+							>
+						</div>
+					</div>
+					<div class="paytable-card">
+						<div class="paytable-header">
+							<span>Symbol Paytable</span>
+							<strong>3 / 4 / 5 of a kind</strong>
+						</div>
+						<div class="paytable-grid">
+							{#each regularSymbols as symbol}
+								<div class="paytable-row">
+									<span>{symbolMeta[symbol].label}</span>
+									<strong>{paytableValue(symbol, 3)}</strong>
+									<strong>{paytableValue(symbol, 4)}</strong>
+									<strong>{paytableValue(symbol, 5)}</strong>
+								</div>
+							{/each}
+						</div>
+					</div>
 					<label class="select-label">
 						<span>Autoplay Count</span>
 						<select bind:value={autoplayPreset} disabled={autoplayEnabled || !canSpin}>
@@ -2712,13 +3511,13 @@
 							on:click={resetBankroll}
 							disabled={roundState !== 'idle'}
 						>
-							Reset Bankroll
+							Refill Balance
 						</button>
 					</div>
 				</article>
 
 				<article class="tool-card">
-					<p class="panel-label">Wheel Guide</p>
+					<p class="panel-label">Wild Wheel Rules</p>
 					<div class="rule-list">
 						<article>
 							<h2>Blue Wild Wheel</h2>
@@ -2730,11 +3529,18 @@
 							<h2>Red Wild Wheel</h2>
 							<p>Outer spins first, inner spins second, and the final result is outer x inner.</p>
 						</article>
+						<article>
+							<h2>Scatter Trigger</h2>
+							<p>
+								3 scatters unlock Regular Free Spins. 4 scatters unlock Super Free Spins with sticky
+								wheel cells.
+							</p>
+						</article>
 					</div>
 				</article>
 
 				<article class="tool-card tool-card-paylines">
-					<p class="panel-label">Line Map</p>
+					<p class="panel-label">Payline Map</p>
 					<div class="payline-list">
 						{#each paylines as line, index}
 							<div
@@ -2751,11 +3557,11 @@
 			<section class="loop-strip">
 				<div class="results-header loop-strip-header">
 					<div>
-						<p class="panel-label">Loop Signals</p>
-						<h2>Live Session Model</h2>
+						<p class="panel-label">Session Read</p>
+						<h2>Session Profile</h2>
 						<p class="panel-note">
-							Read the loop by dead space, wheel frequency, and paid return. Forced tests do not
-							count.
+							Read the base game by dead space, wheel frequency, and return. Showcase spins do not
+							count toward this sample.
 						</p>
 					</div>
 					<div class="results-summary">
@@ -2765,7 +3571,7 @@
 
 				{#if !liveLoopSignals.liveSpins}
 					<div class="empty-state">
-						Run live-strip spins to build a real session sample before judging the loop.
+						Run base-game spins to build a real session sample before judging the loop.
 					</div>
 				{:else}
 					<div class="loop-summary">
@@ -2789,7 +3595,7 @@
 							<div>
 								<span>Peak Hit</span>
 								<strong>{formatMultiplier(liveLoopSignals.biggestWinMultiplier)}</strong>
-								<em>GC {formatValue(liveLoopSignals.biggestWin)}</em>
+								<em>{formatCurrency(liveLoopSignals.biggestWin)}</em>
 							</div>
 							<div>
 								<span>Pressure Rounds</span>
@@ -2821,13 +3627,14 @@
 							<span>Paid Return</span>
 							<strong>{formatPercent(liveReturnRatio)}</strong>
 							<em>
-								GC {formatValue(liveLoopSignals.totalPaid)} back from GC
-								{formatValue(liveLoopSignals.totalBet)}
+								{formatCurrency(liveLoopSignals.totalPaid)} back from {formatCurrency(
+									liveLoopSignals.totalBet,
+								)}
 							</em>
 						</div>
 						<div class="loop-metric">
 							<span>Avg Paid Hit</span>
-							<strong>GC {formatValue(liveAverageHit)}</strong>
+							<strong>{formatCurrency(liveAverageHit)}</strong>
 							<em>{liveLoopSignals.totalWinningLines} line hits logged</em>
 						</div>
 						<div class="loop-metric">
@@ -2861,17 +3668,17 @@
 			<section class="results-strip">
 				<div class="results-header">
 					<div>
-						<p class="panel-label">Round Win</p>
+						<p class="panel-label">Round Result</p>
 						<h2>Line Wins</h2>
 					</div>
 					<div class="results-summary">
-						<span>{lineResults.length} lines</span><strong>{formatValue(totalWin)}</strong>
+						<span>{lineResults.length} lines</span><strong>{formatCurrency(totalWin)}</strong>
 					</div>
 				</div>
 
 				{#if !lineResults.length}
 					<div class="empty-state">
-						Spin the reels to preview line paths, wheel resolves, and the 50x total-win flow.
+						Spin the reels to reveal line paths, wheel boosts, and the big-win finish.
 					</div>
 				{:else}
 					<div class="result-list">
@@ -2891,7 +3698,7 @@
 								<div class="result-numbers">
 									<span>base {formatMultiplier(result.baseMultiplier)}</span>
 									<strong>{formatMultiplier(result.totalMultiplier)}</strong>
-									<em>GC {formatValue(result.payout)}</em>
+									<em>{formatCurrency(result.payout)}</em>
 								</div>
 							</div>
 						{/each}
@@ -2902,7 +3709,7 @@
 			<section class="history-strip">
 				<div class="results-header">
 					<div>
-						<p class="panel-label">Session Feed</p>
+						<p class="panel-label">Recent Spins</p>
 						<h2>Recent Rounds</h2>
 					</div>
 					<div class="results-summary">
@@ -2931,11 +3738,11 @@
 								</div>
 								<div class="history-meta">
 									<div><span>mood</span><strong>{entry.mood}</strong></div>
-									<div><span>bet</span><strong>GC {formatValue(entry.bet)}</strong></div>
+									<div><span>bet</span><strong>{formatCurrency(entry.bet)}</strong></div>
 									<div><span>lines</span><strong>{entry.lineCount}</strong></div>
 									<div><span>wheels</span><strong>{entry.wheelCount}</strong></div>
-									<div><span>win</span><strong>GC {formatValue(entry.totalWin)}</strong></div>
-									<div><span>bank</span><strong>GC {formatValue(entry.balanceAfter)}</strong></div>
+									<div><span>win</span><strong>{formatCurrency(entry.totalWin)}</strong></div>
+									<div><span>bank</span><strong>{formatCurrency(entry.balanceAfter)}</strong></div>
 								</div>
 							</div>
 						{/each}
@@ -3317,6 +4124,78 @@
 		background: rgba(26, 70, 116, 0.72);
 	}
 
+	.toggle-button.is-pending {
+		border-color: rgba(255, 204, 121, 0.42);
+		background:
+			linear-gradient(180deg, rgba(58, 39, 16, 0.96), rgba(34, 22, 12, 0.92)),
+			radial-gradient(circle at top, rgba(255, 208, 124, 0.14), transparent 56%);
+		color: #ffe2b6;
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.06),
+			0 10px 22px rgba(22, 12, 5, 0.2);
+	}
+
+	.autoplay-confirm {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) auto;
+		gap: 14px 16px;
+		padding: 14px 16px;
+		border-radius: 18px;
+		background:
+			linear-gradient(180deg, rgba(27, 20, 11, 0.98), rgba(16, 13, 9, 0.94)),
+			radial-gradient(circle at top right, rgba(255, 201, 106, 0.14), transparent 48%);
+		border: 1px solid rgba(255, 201, 106, 0.2);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.03),
+			0 16px 28px rgba(7, 5, 2, 0.18);
+	}
+
+	.autoplay-confirm-copy {
+		display: grid;
+		gap: 4px;
+		min-width: 0;
+	}
+
+	.autoplay-confirm-copy span {
+		font-size: 0.68rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(255, 215, 148, 0.74);
+	}
+
+	.autoplay-confirm-copy strong {
+		font-size: 0.98rem;
+		font-weight: 900;
+		letter-spacing: -0.02em;
+		color: #fff1d9;
+	}
+
+	.autoplay-confirm-copy em {
+		margin: 0;
+		font-size: 0.75rem;
+		font-style: normal;
+		line-height: 1.45;
+		color: rgba(235, 218, 191, 0.7);
+	}
+
+	.autoplay-confirm-actions {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+
+	.autoplay-confirm-start {
+		background:
+			linear-gradient(180deg, rgba(255, 214, 134, 0.96), rgba(230, 168, 74, 0.94)),
+			radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 48%);
+		color: #231207;
+		border-color: rgba(255, 230, 184, 0.44);
+		box-shadow:
+			inset 0 1px 0 rgba(255, 255, 255, 0.4),
+			0 14px 22px rgba(110, 61, 15, 0.22);
+	}
+
 	.bet-stepper {
 		display: grid;
 		grid-template-columns: 56px minmax(0, 1fr) 56px;
@@ -3372,10 +4251,10 @@
 	}
 
 	.bonus-buy-button {
-		min-height: 68px;
+		min-height: 92px;
 		padding: 12px 14px;
 		display: grid;
-		gap: 4px;
+		gap: 6px;
 		align-content: center;
 		text-align: left;
 	}
@@ -3392,6 +4271,14 @@
 		font-size: 1rem;
 		font-weight: 900;
 		letter-spacing: -0.02em;
+	}
+
+	.bonus-buy-button em {
+		margin: 0;
+		font-size: 0.74rem;
+		font-style: normal;
+		line-height: 1.35;
+		color: rgba(204, 224, 242, 0.68);
 	}
 
 	.bonus-buy-button-regular {
@@ -3427,6 +4314,92 @@
 		display: grid;
 		grid-template-columns: repeat(2, minmax(0, 1fr));
 		gap: 10px;
+	}
+
+	.rule-mode-grid {
+		display: grid;
+		grid-template-columns: repeat(3, minmax(0, 1fr));
+		gap: 10px;
+		margin-top: 14px;
+	}
+
+	.rule-mode-card,
+	.paytable-card {
+		padding: 14px;
+		border-radius: 18px;
+		background: rgba(6, 14, 22, 0.76);
+		border: 1px solid rgba(255, 255, 255, 0.06);
+	}
+
+	.rule-mode-card {
+		display: grid;
+		gap: 5px;
+	}
+
+	.rule-mode-card span,
+	.paytable-header span,
+	.paytable-row span {
+		font-size: 0.7rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(174, 207, 236, 0.7);
+	}
+
+	.rule-mode-card strong {
+		font-size: 0.94rem;
+		font-weight: 900;
+		color: #f0f7ff;
+	}
+
+	.rule-mode-card em {
+		margin: 0;
+		font-size: 0.75rem;
+		font-style: normal;
+		line-height: 1.45;
+		color: rgba(196, 219, 239, 0.68);
+	}
+
+	.paytable-card {
+		display: grid;
+		gap: 12px;
+		margin-top: 14px;
+	}
+
+	.paytable-header {
+		display: flex;
+		justify-content: space-between;
+		gap: 12px;
+		align-items: end;
+	}
+
+	.paytable-header strong {
+		font-size: 0.82rem;
+		font-weight: 800;
+		color: rgba(223, 237, 250, 0.84);
+	}
+
+	.paytable-grid {
+		display: grid;
+		gap: 8px;
+	}
+
+	.paytable-row {
+		display: grid;
+		grid-template-columns: minmax(0, 1fr) repeat(3, minmax(44px, auto));
+		gap: 10px;
+		align-items: center;
+		padding: 10px 12px;
+		border-radius: 14px;
+		background: rgba(10, 19, 30, 0.9);
+		border: 1px solid rgba(255, 255, 255, 0.04);
+	}
+
+	.paytable-row strong {
+		font-size: 0.84rem;
+		font-weight: 800;
+		text-align: right;
+		color: #f2f8ff;
 	}
 
 	.metric-positive {
@@ -3600,6 +4573,30 @@
 		animation-duration: 3.3s;
 	}
 
+	.stage-transition-active::before {
+		content: '';
+		position: absolute;
+		inset: 22px 18px auto;
+		height: 180px;
+		border-radius: 28px;
+		background:
+			linear-gradient(180deg, rgba(110, 196, 255, 0.12), rgba(110, 196, 255, 0)),
+			radial-gradient(circle at top, rgba(132, 207, 255, 0.22), transparent 58%);
+		opacity: 0.88;
+		pointer-events: none;
+		z-index: 0;
+		animation: featureTransitionSweep 760ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.stage-transition-super::before {
+		height: 220px;
+		background:
+			linear-gradient(180deg, rgba(255, 150, 108, 0.14), rgba(255, 150, 108, 0)),
+			radial-gradient(circle at top, rgba(255, 178, 116, 0.18), transparent 56%),
+			radial-gradient(circle at 28% 30%, rgba(88, 170, 255, 0.12), transparent 34%);
+		animation-duration: 1.18s;
+	}
+
 	.stage-topline,
 	.results-header {
 		display: grid;
@@ -3705,6 +4702,13 @@
 		letter-spacing: -0.03em;
 	}
 
+	.feature-banner-stat-hot {
+		border-color: rgba(255, 198, 118, 0.2);
+		background:
+			linear-gradient(180deg, rgba(21, 20, 26, 0.88), rgba(12, 16, 22, 0.84)),
+			radial-gradient(circle at top, rgba(255, 188, 96, 0.12), transparent 44%);
+	}
+
 	.feature-sticky-pill {
 		grid-column: 1 / -1;
 		display: grid;
@@ -3715,6 +4719,220 @@
 			linear-gradient(180deg, rgba(35, 15, 12, 0.96), rgba(21, 12, 13, 0.94)),
 			radial-gradient(circle at right, rgba(255, 120, 82, 0.12), transparent 40%);
 		border: 1px solid rgba(255, 150, 108, 0.18);
+	}
+
+	.feature-progress-band {
+		grid-column: 1 / -1;
+		display: grid;
+		gap: 8px;
+		margin-top: -2px;
+	}
+
+	.feature-progress-copy {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px 12px;
+		align-items: baseline;
+		justify-content: space-between;
+	}
+
+	.feature-progress-copy span {
+		font-size: 0.66rem;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: rgba(176, 208, 236, 0.62);
+	}
+
+	.feature-progress-copy strong {
+		font-size: 0.82rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+		color: rgba(230, 243, 255, 0.9);
+	}
+
+	.feature-progress-rail {
+		position: relative;
+		height: 10px;
+		border-radius: 999px;
+		overflow: hidden;
+		background:
+			linear-gradient(180deg, rgba(5, 12, 19, 0.92), rgba(8, 15, 24, 0.88)),
+			radial-gradient(circle at left, rgba(96, 172, 243, 0.08), transparent 32%);
+		border: 1px solid rgba(128, 170, 207, 0.12);
+	}
+
+	.feature-progress-fill {
+		height: 100%;
+		border-radius: inherit;
+		background:
+			linear-gradient(90deg, rgba(92, 184, 255, 0.82), rgba(127, 213, 255, 0.96)),
+			radial-gradient(circle at right, rgba(255, 255, 255, 0.18), transparent 34%);
+		box-shadow: 0 0 18px rgba(80, 170, 241, 0.22);
+		transition: width 240ms ease;
+	}
+
+	.feature-progress-fill-super {
+		background:
+			linear-gradient(90deg, rgba(255, 148, 104, 0.82), rgba(255, 199, 116, 0.96)),
+			radial-gradient(circle at right, rgba(255, 244, 214, 0.18), transparent 34%);
+		box-shadow: 0 0 20px rgba(255, 131, 90, 0.24);
+	}
+
+	.feature-transition-card {
+		display: grid;
+		grid-template-columns: minmax(0, 1.2fr) auto;
+		gap: 16px;
+		align-items: center;
+		margin: 0 0 16px;
+		padding: 16px 18px;
+		border-radius: 22px;
+		background:
+			linear-gradient(180deg, rgba(8, 22, 37, 0.98), rgba(7, 18, 29, 0.94)),
+			radial-gradient(circle at left, rgba(79, 172, 255, 0.18), transparent 36%);
+		border: 1px solid rgba(118, 184, 236, 0.24);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+			0 18px 32px rgba(2, 9, 16, 0.24);
+		animation: featureTransitionRegularIn 360ms cubic-bezier(0.16, 1, 0.3, 1);
+		transform-origin: center top;
+	}
+
+	.feature-transition-card-super {
+		background:
+			linear-gradient(180deg, rgba(27, 17, 18, 0.98), rgba(15, 12, 16, 0.94)),
+			radial-gradient(circle at right, rgba(255, 118, 78, 0.18), transparent 38%),
+			radial-gradient(circle at left, rgba(84, 164, 255, 0.08), transparent 34%);
+		border-color: rgba(255, 146, 102, 0.26);
+		animation: featureTransitionSuperIn 820ms cubic-bezier(0.12, 1, 0.22, 1);
+	}
+
+	.bonus-trigger-card {
+		background:
+			linear-gradient(180deg, rgba(13, 27, 44, 0.98), rgba(8, 20, 32, 0.95)),
+			radial-gradient(circle at left, rgba(88, 176, 255, 0.22), transparent 36%),
+			radial-gradient(circle at right, rgba(255, 192, 98, 0.12), transparent 34%);
+		border-color: rgba(136, 198, 246, 0.3);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+			0 22px 36px rgba(2, 9, 16, 0.28),
+			0 0 32px rgba(67, 151, 235, 0.12);
+	}
+
+	.bonus-trigger-card-super {
+		background:
+			linear-gradient(180deg, rgba(31, 17, 16, 0.98), rgba(17, 13, 18, 0.95)),
+			radial-gradient(circle at left, rgba(255, 122, 82, 0.24), transparent 36%),
+			radial-gradient(circle at right, rgba(255, 205, 118, 0.12), transparent 34%);
+		border-color: rgba(255, 156, 112, 0.32);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+			0 22px 38px rgba(10, 6, 8, 0.32),
+			0 0 36px rgba(255, 107, 79, 0.14);
+	}
+
+	.feature-transition-card-outro {
+		grid-template-columns: minmax(0, 1fr) auto auto;
+		animation: featureTransitionRegularOut 420ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.feature-transition-card-outro.feature-transition-card-super {
+		animation: featureTransitionSuperOut 720ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.feature-transition-card-intro:not(.feature-transition-card-super) .feature-transition-seals {
+		animation: featureSealDrift 420ms cubic-bezier(0.2, 1, 0.3, 1);
+	}
+
+	.feature-transition-card-super .feature-transition-seals {
+		animation: featureSealDriftHeavy 860ms cubic-bezier(0.14, 1, 0.24, 1);
+	}
+
+	.feature-transition-copy {
+		display: grid;
+		gap: 4px;
+	}
+
+	.feature-transition-kicker {
+		display: block;
+		font-size: 0.68rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(181, 218, 246, 0.72);
+	}
+
+	.feature-transition-copy strong {
+		display: block;
+		font-size: 1.18rem;
+		font-weight: 900;
+		letter-spacing: -0.03em;
+	}
+
+	.feature-transition-copy em {
+		margin: 0;
+		font-size: 0.82rem;
+		font-style: normal;
+		line-height: 1.45;
+		color: rgba(205, 226, 245, 0.72);
+	}
+
+	.feature-transition-seals {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: end;
+		gap: 10px;
+	}
+
+	.feature-trigger-seal {
+		display: grid;
+		place-items: center;
+		width: 68px;
+		height: 68px;
+		border-radius: 20px;
+		background:
+			radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.24), transparent 26%),
+			linear-gradient(180deg, rgba(21, 58, 91, 0.96), rgba(9, 23, 39, 0.94));
+		border: 1px solid rgba(114, 187, 246, 0.26);
+		box-shadow:
+			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
+			0 14px 20px rgba(2, 9, 16, 0.24);
+		text-align: center;
+	}
+
+	.feature-trigger-seal span,
+	.feature-transition-total span {
+		display: block;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.16em;
+		text-transform: uppercase;
+		color: rgba(198, 226, 248, 0.74);
+	}
+
+	.feature-trigger-seal strong,
+	.feature-transition-total strong {
+		display: block;
+		margin-top: 4px;
+		font-size: 1.1rem;
+		font-weight: 900;
+		letter-spacing: -0.04em;
+	}
+
+	.feature-trigger-seal-super {
+		background:
+			radial-gradient(circle at 32% 28%, rgba(255, 237, 199, 0.18), transparent 24%),
+			linear-gradient(180deg, rgba(98, 33, 24, 0.96), rgba(36, 15, 14, 0.94));
+		border-color: rgba(255, 148, 102, 0.28);
+	}
+
+	.feature-transition-total {
+		min-width: 132px;
+		padding: 12px 14px;
+		border-radius: 16px;
+		background: rgba(7, 18, 29, 0.72);
+		border: 1px solid rgba(255, 255, 255, 0.08);
+		text-align: right;
 	}
 
 	.stage-rhythm {
@@ -3743,6 +4961,20 @@
 		background:
 			linear-gradient(180deg, rgba(16, 18, 27, 0.95), rgba(9, 14, 21, 0.92)),
 			radial-gradient(circle at right, rgba(255, 120, 82, 0.14), transparent 44%);
+	}
+
+	.stage-bonus-trigger .stage-rhythm {
+		border-color: rgba(120, 184, 235, 0.22);
+		background:
+			linear-gradient(180deg, rgba(9, 21, 34, 0.95), rgba(8, 16, 26, 0.92)),
+			radial-gradient(circle at right, rgba(88, 175, 255, 0.16), transparent 44%);
+	}
+
+	.stage-bonus-trigger-super .stage-rhythm {
+		border-color: rgba(255, 160, 118, 0.24);
+		background:
+			linear-gradient(180deg, rgba(17, 18, 28, 0.95), rgba(10, 14, 21, 0.92)),
+			radial-gradient(circle at right, rgba(255, 121, 78, 0.18), transparent 44%);
 	}
 
 	.stage-rhythm-summary {
@@ -4317,6 +5549,97 @@
 		}
 	}
 
+	@keyframes featureTransitionRegularIn {
+		from {
+			opacity: 0;
+			transform: translateY(-16px) scale(0.985);
+			filter: blur(6px);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			filter: blur(0);
+		}
+	}
+
+	@keyframes featureTransitionSuperIn {
+		0% {
+			opacity: 0;
+			transform: translateY(-24px) scale(0.94);
+			filter: blur(10px);
+		}
+
+		62% {
+			opacity: 1;
+			transform: translateY(0) scale(1.02);
+			filter: blur(0);
+		}
+
+		100% {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			filter: blur(0);
+		}
+	}
+
+	@keyframes featureTransitionRegularOut {
+		from {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			filter: blur(0);
+		}
+
+		to {
+			opacity: 0;
+			transform: translateY(10px) scale(0.992);
+			filter: blur(6px);
+		}
+	}
+
+	@keyframes featureTransitionSuperOut {
+		0% {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+			filter: blur(0);
+		}
+
+		100% {
+			opacity: 0;
+			transform: translateY(14px) scale(0.978);
+			filter: blur(9px);
+		}
+	}
+
+	@keyframes featureSealDrift {
+		from {
+			opacity: 0;
+			transform: translateY(8px);
+		}
+
+		to {
+			opacity: 1;
+			transform: translateY(0);
+		}
+	}
+
+	@keyframes featureSealDriftHeavy {
+		0% {
+			opacity: 0;
+			transform: translateY(16px) scale(0.94);
+		}
+
+		60% {
+			opacity: 1;
+			transform: translateY(-2px) scale(1.02);
+		}
+
+		100% {
+			opacity: 1;
+			transform: translateY(0) scale(1);
+		}
+	}
+
 	@keyframes featureStageBreathe {
 		0%,
 		100% {
@@ -4325,6 +5648,18 @@
 
 		50% {
 			opacity: 1;
+		}
+	}
+
+	@keyframes featureTransitionSweep {
+		from {
+			opacity: 0;
+			transform: translateY(-10px) scaleY(0.88);
+		}
+
+		to {
+			opacity: 0.92;
+			transform: translateY(0) scaleY(1);
 		}
 	}
 
@@ -4508,6 +5843,10 @@
 			grid-template-columns: repeat(2, minmax(0, 1fr));
 		}
 
+		.rule-mode-grid {
+			grid-template-columns: 1fr;
+		}
+
 		.bonus-buy-row {
 			grid-template-columns: 1fr;
 		}
@@ -4522,6 +5861,7 @@
 		.hero-status,
 		.stage-topline,
 		.feature-banner,
+		.feature-transition-card,
 		.stage-rhythm,
 		.results-header,
 		.stage-console,
@@ -4535,7 +5875,11 @@
 		.console-action-row,
 		.console-toggle-stack,
 		.bonus-buy-row,
-		.tool-action-row {
+		.tool-action-row,
+		.autoplay-confirm,
+		.autoplay-confirm-actions,
+		.rule-mode-grid,
+		.paytable-row {
 			grid-template-columns: 1fr;
 		}
 
@@ -4553,8 +5897,20 @@
 			justify-content: start;
 		}
 
+		.feature-transition-seals {
+			justify-content: start;
+		}
+
+		.feature-transition-total {
+			text-align: left;
+		}
+
 		.tool-card-paylines {
 			grid-column: auto;
+		}
+
+		.paytable-row strong {
+			text-align: left;
 		}
 	}
 </style>

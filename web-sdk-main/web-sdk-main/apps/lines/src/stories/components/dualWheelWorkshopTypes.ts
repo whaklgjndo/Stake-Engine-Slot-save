@@ -1,4 +1,4 @@
-export type SymbolTier = 'gold' | 'silver' | 'wood' | 'wheel';
+export type SymbolTier = 'gold' | 'silver' | 'wood' | 'wheel' | 'bonus';
 
 export type SymbolId =
 	| 'crown'
@@ -14,10 +14,11 @@ export type SymbolId =
 	| 'runeD'
 	| 'runeE'
 	| 'runeF'
+	| 'scatter'
 	| 'blueWheel'
 	| 'redWheel';
 
-export type RegularSymbolId = Exclude<SymbolId, 'blueWheel' | 'redWheel'>;
+export type RegularSymbolId = Exclude<SymbolId, 'blueWheel' | 'redWheel' | 'scatter'>;
 
 export type ReelState = 'idle' | 'spinning' | 'braking' | 'landing';
 
@@ -46,6 +47,12 @@ export type Point = { x: number; y: number };
 export type WheelAward =
 	| { type: 'blue'; value: number }
 	| { type: 'red'; outer: number; inner: number };
+
+export type BonusTrigger = {
+	mode: BonusMode;
+	count: number;
+	positions: Position[];
+};
 
 export type Scenario = {
 	key: string;
@@ -87,12 +94,22 @@ export type ResolvedWheelState = Position & {
 	inner?: number;
 };
 
+export type LockedCellState = {
+	locked: boolean;
+	multiplierValue: number | null;
+	symbol: SymbolId | null;
+	type: 'blue' | 'red' | null;
+	outer?: number | null;
+	inner?: number | null;
+};
+
 export type WheelResultBurst = Position & {
 	id: number;
 	type: 'blue' | 'red';
 	total: number;
 	outer?: number;
 	inner?: number;
+	sticky?: boolean;
 };
 
 export type TimingConfig = {
@@ -135,5 +152,5 @@ export type SymbolMeta = {
 	background: string;
 	glow: string;
 	frame: string;
-	kind: 'regular' | 'wheel';
+	kind: 'regular' | 'wheel' | 'bonus';
 };

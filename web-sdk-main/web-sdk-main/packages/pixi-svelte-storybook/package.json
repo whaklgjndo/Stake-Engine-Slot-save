@@ -13,28 +13,28 @@
 		"build-storybook": "storybook build"
 	},
 	"devDependencies": {
-		"eslint": "9.21.0",
-		"eslint-config-custom": "workspace:*",
 		"components-storybook": "workspace:*",
+		"config-lingui": "workspace:*",
+		"config-storybook": "workspace:*",
+		"config-svelte": "workspace:*",
 		"config-ts": "workspace:*",
 		"config-vite": "workspace:*",
-		"config-svelte": "workspace:*",
-		"config-lingui": "workspace:*",
-		"config-storybook": "workspace:*"
+		"eslint": "9.21.0",
+		"eslint-config-custom": "workspace:*"
 	},
 	"dependencies": {
-		"svelte": "5.55.1",
-		"vite": "8.0.3",
-		"utils-shared": "workspace:*",
-		"pixi-svelte": "workspace:*",
 		"@chromatic-com/storybook": "5.1.1",
+		"@storybook/addon-docs": "10.3.5",
 		"@storybook/addon-svelte-csf": "5.1.2",
-		"@storybook/addon-docs": "10.3.4",
-		"storybook": "10.3.4",
-		"@storybook/sveltekit": "10.3.4",
+		"@storybook/sveltekit": "10.3.5",
 		"@sveltejs/adapter-static": "3.0.10",
 		"@sveltejs/vite-plugin-svelte": "7.0.0",
-		"pixi.js": "8.8.1"
+		"pixi-svelte": "workspace:*",
+		"pixi.js": "8.8.1",
+		"storybook": "10.3.5",
+		"svelte": "5.55.1",
+		"utils-shared": "workspace:*",
+		"vite": "8.0.3"
 	},
 	"type": "module"
 }

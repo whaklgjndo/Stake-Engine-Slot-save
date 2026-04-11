@@ -75,10 +75,7 @@
 	$: regularTriggerRate = report ? ratio(report.bonuses.regularTriggers, report.spins) : 0;
 	$: superTriggerRate = report ? ratio(report.bonuses.superTriggers, report.spins) : 0;
 	$: bonusContribution = report
-		? ratio(
-				report.bonuses.regularBonusPaid + report.bonuses.superBonusPaid,
-				report.totalPaid,
-			)
+		? ratio(report.bonuses.regularBonusPaid + report.bonuses.superBonusPaid, report.totalPaid)
 		: 0;
 
 	function clampInt(value: number, min: number, max: number): number {
@@ -257,7 +254,7 @@
 			</div>
 			<div class="hero-pill">
 				<span>Bet</span>
-				<strong>GC {formatValue(safeBet)}</strong>
+				<strong>${formatValue(safeBet)}</strong>
 			</div>
 			<div class="hero-pill">
 				<span>Runtime</span>
@@ -283,7 +280,14 @@
 
 			<label class="control-field">
 				<span>Spin Count</span>
-				<input bind:value={requestedSpins} type="number" min="1" max="100000" step="1000" disabled={running} />
+				<input
+					bind:value={requestedSpins}
+					type="number"
+					min="1"
+					max="100000"
+					step="1000"
+					disabled={running}
+				/>
 				<em>Hard capped at 100,000 spins per run to keep Storybook responsive.</em>
 			</label>
 
@@ -329,7 +333,7 @@
 							on:click={() => setBetPreset(preset)}
 							disabled={running}
 						>
-							GC {formatValue(preset)}
+							${formatValue(preset)}
 						</button>
 					{/each}
 				</div>
@@ -362,13 +366,21 @@
 		<div class="metric-grid">
 			<div class="metric-card">
 				<span>Total Bet</span>
-				<strong>{report ? `GC ${formatValue(report.totalBet)}` : '—'}</strong>
-				<em>{report ? `${report.spins.toLocaleString()} rounds simulated` : 'Run a sample to populate this.'}</em>
+				<strong>{report ? `$${formatValue(report.totalBet)}` : '—'}</strong>
+				<em
+					>{report
+						? `${report.spins.toLocaleString()} rounds simulated`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>Total Paid</span>
-				<strong>{report ? `GC ${formatValue(report.totalPaid)}` : '—'}</strong>
-				<em>{report ? `${formatPercent(report.rtp)} paid back` : 'Run a sample to populate this.'}</em>
+				<strong>{report ? `$${formatValue(report.totalPaid)}` : '—'}</strong>
+				<em
+					>{report
+						? `${formatPercent(report.rtp)} paid back`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>RTP Delta</span>
@@ -381,27 +393,47 @@
 			<div class="metric-card">
 				<span>Max Win</span>
 				<strong>{report ? formatMultiplier(report.maxWinMultiplier) : '—'}</strong>
-				<em>{report ? `GC ${formatValue(report.maxWin)}` : `product ceiling ${formatMultiplier(PRODUCT_MAX_WIN_TARGET)}`}</em>
+				<em
+					>{report
+						? `$${formatValue(report.maxWin)}`
+						: `product ceiling ${formatMultiplier(PRODUCT_MAX_WIN_TARGET)}`}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>Hit Rate</span>
 				<strong>{report ? formatPercent(hitRate) : '—'}</strong>
-				<em>{report ? `${report.hitSpins.toLocaleString()} paid spins` : 'Run a sample to populate this.'}</em>
+				<em
+					>{report
+						? `${report.hitSpins.toLocaleString()} paid spins`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>Dead Space</span>
 				<strong>{report ? formatPercent(deadRate) : '—'}</strong>
-				<em>{report ? `${report.deadSpins.toLocaleString()} zero-win spins` : 'Run a sample to populate this.'}</em>
+				<em
+					>{report
+						? `${report.deadSpins.toLocaleString()} zero-win spins`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>Wheel Rounds</span>
 				<strong>{report ? formatPercent(wheelRate) : '—'}</strong>
-				<em>{report ? `${report.wheelRounds.toLocaleString()} rounds with wheels` : 'Run a sample to populate this.'}</em>
+				<em
+					>{report
+						? `${report.wheelRounds.toLocaleString()} rounds with wheels`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 			<div class="metric-card">
 				<span>Average Hit</span>
-				<strong>{report ? `GC ${formatValue(report.averageWinOnHit)}` : '—'}</strong>
-				<em>{report ? `${averageLinesOnHit.toFixed(2)} lines per paid round` : 'Run a sample to populate this.'}</em>
+				<strong>{report ? `$${formatValue(report.averageWinOnHit)}` : '—'}</strong>
+				<em
+					>{report
+						? `${averageLinesOnHit.toFixed(2)} lines per paid round`
+						: 'Run a sample to populate this.'}</em
+				>
 			</div>
 		</div>
 	</section>
@@ -413,7 +445,9 @@
 					<p class="eyebrow">Distribution</p>
 					<h2>Win Ranges</h2>
 				</div>
-				<div class="panel-meta">{report ? report.distinctPaidMultipliers.toLocaleString() : '0'} paid multipliers</div>
+				<div class="panel-meta">
+					{report ? report.distinctPaidMultipliers.toLocaleString() : '0'} paid multipliers
+				</div>
 			</div>
 
 			<div class="distribution-list">
@@ -424,7 +458,10 @@
 							<strong>{row.count.toLocaleString()}</strong>
 						</div>
 						<div class="distribution-bar-track">
-							<div class="distribution-bar-fill" style={`width:${Math.max(row.rate * 100, 0)}%;`}></div>
+							<div
+								class="distribution-bar-fill"
+								style={`width:${Math.max(row.rate * 100, 0)}%;`}
+							></div>
 						</div>
 						<div class="distribution-rate">{formatPercent(row.rate)}</div>
 					</div>
@@ -449,7 +486,10 @@
 							<strong>{row.count.toLocaleString()}</strong>
 						</div>
 						<div class="distribution-bar-track">
-							<div class="distribution-bar-fill distribution-bar-fill-cool" style={`width:${Math.max(row.rate * 100, 0)}%;`}></div>
+							<div
+								class="distribution-bar-fill distribution-bar-fill-cool"
+								style={`width:${Math.max(row.rate * 100, 0)}%;`}
+							></div>
 						</div>
 						<div class="distribution-rate">{formatPercent(row.rate)}</div>
 					</div>
@@ -472,32 +512,66 @@
 				<div class="stack-row">
 					<span>Blue wheel frequency</span>
 					<strong>{report ? formatPercent(blueWheelRate) : '—'}</strong>
-					<em>{report ? `${report.blueWheels.toLocaleString()} blue wheels across all rounds` : 'Run a sample to populate this.'}</em>
+					<em
+						>{report
+							? `${report.blueWheels.toLocaleString()} blue wheels across all rounds`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Red wheel frequency</span>
 					<strong>{report ? formatPercent(redWheelRate) : '—'}</strong>
-					<em>{report ? `${report.redWheels.toLocaleString()} red wheels across all rounds` : 'Run a sample to populate this.'}</em>
+					<em
+						>{report
+							? `${report.redWheels.toLocaleString()} red wheels across all rounds`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Line-only paid rounds</span>
 					<strong>{report ? report.volatility.lineOnlyRounds.toLocaleString() : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.volatility.lineOnlyPaid)} returned without wheel help` : 'Run a sample to populate this.'}</em>
+					<em
+						>{report
+							? `$${formatValue(report.volatility.lineOnlyPaid)} returned without wheel help`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Blue-led paid rounds</span>
 					<strong>{report ? report.volatility.blueWheelRounds.toLocaleString() : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.volatility.blueWheelPaid)} returned from blue-led rounds` : 'Run a sample to populate this.'}</em>
+					<em
+						>{report
+							? `$${formatValue(report.volatility.blueWheelPaid)} returned from blue-led rounds`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Red-led paid rounds</span>
-					<strong>{report ? (report.volatility.redWheelRounds + report.volatility.comboWheelRounds).toLocaleString() : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.volatility.redWheelPaid + report.volatility.comboWheelPaid)} returned from red-led or combo rounds` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{report
+							? (
+									report.volatility.redWheelRounds + report.volatility.comboWheelRounds
+								).toLocaleString()
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `$${formatValue(report.volatility.redWheelPaid + report.volatility.comboWheelPaid)} returned from red-led or combo rounds`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Pressure rounds</span>
-					<strong>{report ? `${report.volatility.fiftyPlusRounds.toLocaleString()} at 50x+` : '—'}</strong>
-					<em>{report ? `${report.volatility.hundredPlusRounds.toLocaleString()} at 100x+` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{report
+							? `${report.volatility.fiftyPlusRounds.toLocaleString()} at 50x+`
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `${report.volatility.hundredPlusRounds.toLocaleString()} at 100x+`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 			</div>
 		</section>
@@ -508,39 +582,91 @@
 					<p class="eyebrow">Features</p>
 					<h2>Bonus Contribution</h2>
 				</div>
-				<div class="panel-meta">{simulationMode === 'fullGame' ? 'trigger model enabled' : 'live base only'}</div>
+				<div class="panel-meta">
+					{simulationMode === 'fullGame' ? 'trigger model enabled' : 'live base only'}
+				</div>
 			</div>
 
 			<div class="metric-stack">
 				<div class="stack-row">
 					<span>Regular trigger rate</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatPercent(regularTriggerRate) : '—'}</strong>
-					<em>{report ? `${report.bonuses.regularTriggers.toLocaleString()} regular bonuses` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatPercent(regularTriggerRate)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `${report.bonuses.regularTriggers.toLocaleString()} regular bonuses`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Super trigger rate</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatPercent(superTriggerRate) : '—'}</strong>
-					<em>{report ? `${report.bonuses.superTriggers.toLocaleString()} super bonuses` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatPercent(superTriggerRate)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `${report.bonuses.superTriggers.toLocaleString()} super bonuses`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Bonus-paid share</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatPercent(bonusContribution) : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.bonuses.regularBonusPaid + report.bonuses.superBonusPaid)} came from feature rounds` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatPercent(bonusContribution)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `$${formatValue(report.bonuses.regularBonusPaid + report.bonuses.superBonusPaid)} came from feature rounds`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Average regular bonus</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatMultiplier(report.bonuses.regularAverageBonus / safeBet) : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.bonuses.regularAverageBonus)} average regular feature` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatMultiplier(report.bonuses.regularAverageBonus / safeBet)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `$${formatValue(report.bonuses.regularAverageBonus)} average regular feature`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Average super bonus</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatMultiplier(report.bonuses.superAverageBonus / safeBet) : '—'}</strong>
-					<em>{report ? `GC ${formatValue(report.bonuses.superAverageBonus)} average super feature` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatMultiplier(report.bonuses.superAverageBonus / safeBet)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `$${formatValue(report.bonuses.superAverageBonus)} average super feature`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 				<div class="stack-row">
 					<span>Largest feature</span>
-					<strong>{simulationMode === 'fullGame' && report ? formatMultiplier(Math.max(report.bonuses.maxRegularBonus, report.bonuses.maxSuperBonus) / safeBet) : '—'}</strong>
-					<em>{report ? `regular ${formatValue(report.bonuses.maxRegularBonus)} / super ${formatValue(report.bonuses.maxSuperBonus)}` : 'Run a sample to populate this.'}</em>
+					<strong
+						>{simulationMode === 'fullGame' && report
+							? formatMultiplier(
+									Math.max(report.bonuses.maxRegularBonus, report.bonuses.maxSuperBonus) / safeBet,
+								)
+							: '—'}</strong
+					>
+					<em
+						>{report
+							? `regular ${formatValue(report.bonuses.maxRegularBonus)} / super ${formatValue(report.bonuses.maxSuperBonus)}`
+							: 'Run a sample to populate this.'}</em
+					>
 				</div>
 			</div>
 		</section>

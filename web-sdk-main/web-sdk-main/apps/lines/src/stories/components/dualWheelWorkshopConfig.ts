@@ -45,45 +45,46 @@ export const LIVE_BASE_GAME_WHEEL_PROFILE = {
 	maxBluePerBoard: 2,
 	maxRedPerBoard: 1,
 } as const satisfies WheelProfileConfig;
+export const LIVE_BASE_GAME_BONUS_SEAL_WEIGHTS = [98840, 920, 190, 45, 5] as const;
 export const PREVIEW_BONUS_BUY_MULTIPLIERS = {
-	regular: 40,
-	super: 100,
+	regular: 20.2,
+	super: 532,
 } as const;
 export const BONUS_ROUND_CONFIG: Record<
 	BonusMode,
 	{
 		freeSpins: number;
-		triggerChance: number;
+		triggerCount: number;
 		stickyWheels: boolean;
 		wheelProfile: WheelProfileConfig;
 	}
 > = {
 	regular: {
 		freeSpins: 10,
-		triggerChance: 0.00018,
+		triggerCount: 3,
 		stickyWheels: false,
 		wheelProfile: {
-			blueKeepChance: 0.32,
-			redKeepChance: 0.075,
-			maxBluePerBoard: 3,
+			blueKeepChance: 0.27,
+			redKeepChance: 0.055,
+			maxBluePerBoard: 2,
 			maxRedPerBoard: 1,
 			injectAnywhere: true,
-			blueAdditionalCountWeights: [14, 12, 5, 1],
-			redAdditionalCountWeights: [30, 2, 1],
+			blueAdditionalCountWeights: [20, 10, 3, 1],
+			redAdditionalCountWeights: [38, 2, 1],
 		},
 	},
 	super: {
 		freeSpins: 10,
-		triggerChance: 0.00001,
+		triggerCount: 4,
 		stickyWheels: true,
 		wheelProfile: {
-			blueKeepChance: 0.52,
-			redKeepChance: 0.18,
-			maxBluePerBoard: 7,
-			maxRedPerBoard: 2,
+			blueKeepChance: 0.36,
+			redKeepChance: 0.1,
+			maxBluePerBoard: 5,
+			maxRedPerBoard: 1,
 			injectAnywhere: true,
-			blueAdditionalCountWeights: [3, 8, 9, 6, 3, 1],
-			redAdditionalCountWeights: [12, 7, 2, 1],
+			blueAdditionalCountWeights: [10, 12, 8, 4, 1, 0],
+			redAdditionalCountWeights: [20, 5, 1, 0],
 		},
 	},
 } as const;
@@ -101,6 +102,7 @@ const runeCAsset = new URL('../assets/symbol-rune-c.png', import.meta.url).href;
 const runeDAsset = new URL('../assets/symbol-rune-d.png', import.meta.url).href;
 const runeEAsset = new URL('../assets/symbol-rune-e.png', import.meta.url).href;
 const runeFAsset = new URL('../assets/symbol-rune-f.png', import.meta.url).href;
+const scatterAsset = new URL('../assets/symbol-scatter.png', import.meta.url).href;
 const blueWheelSymbolAsset = new URL('../assets/blue-wheel-symbol.png', import.meta.url).href;
 const redDualWheelSymbolAsset = new URL('../assets/red-dual-wheel-symbol.png', import.meta.url)
 	.href;
@@ -140,6 +142,10 @@ export const symbolArtAssets: Record<RegularSymbolId, string> = {
 export const wheelSymbolAssets: Record<'blueWheel' | 'redWheel', string> = {
 	blueWheel: blueWheelSymbolAsset,
 	redWheel: redDualWheelSymbolAsset,
+};
+
+export const bonusSymbolAssets: Record<'scatter', string> = {
+	scatter: scatterAsset,
 };
 
 export const symbolMeta: Record<SymbolId, SymbolMeta> = {
@@ -272,6 +278,16 @@ export const symbolMeta: Record<SymbolId, SymbolMeta> = {
 		glow: 'rgba(209,150,87,.34)',
 		frame: '#c98b52',
 		kind: 'regular',
+	},
+	scatter: {
+		label: 'Scatter',
+		short: 'SC',
+		flavor: 'scatter symbol',
+		tier: 'bonus',
+		background: 'linear-gradient(145deg,#552308,#8f3810 48%,#f0b34a)',
+		glow: 'rgba(255,183,78,.72)',
+		frame: '#ffd590',
+		kind: 'bonus',
 	},
 	blueWheel: {
 		label: 'Blue Wheel',
@@ -684,6 +700,34 @@ export const scenarios: Scenario[] = [
 			'2-1': { type: 'red', outer: 20, inner: 5 },
 			'3-1': { type: 'blue', value: 15 },
 		},
+	},
+	{
+		key: 'regular-bonus-trigger',
+		label: 'Regular Bonus Trigger',
+		note: 'Three scatters unlock 10 free spins.',
+		bet: 1,
+		board: [
+			['scatter', 'runeA', 'helmet', 'runeB', 'runeF'],
+			['ankh', 'scatter', 'runeC', 'sunDisc', 'runeD'],
+			['scepter', 'runeE', 'scatter', 'runeF', 'crown'],
+			['runeA', 'helmet', 'runeF', 'runeA', 'wolf'],
+			['sunDisc', 'runeB', 'ankh', 'runeC', 'scepter'],
+		],
+		wheelResults: {},
+	},
+	{
+		key: 'super-bonus-trigger',
+		label: 'Super Bonus Trigger',
+		note: 'Four scatters unlock sticky super free spins.',
+		bet: 1,
+		board: [
+			['scatter', 'runeA', 'helmet', 'scatter', 'runeF'],
+			['ankh', 'runeD', 'wolf', 'runeE', 'axes'],
+			['crown', 'scatter', 'crown', 'crown', 'crown'],
+			['runeF', 'runeF', 'helmet', 'scatter', 'scepter'],
+			['runeB', 'ankh', 'runeC', 'sunDisc', 'wolf'],
+		],
+		wheelResults: {},
 	},
 ];
 
