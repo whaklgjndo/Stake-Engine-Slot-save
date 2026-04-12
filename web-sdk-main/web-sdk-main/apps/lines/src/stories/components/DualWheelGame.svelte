@@ -972,23 +972,45 @@
 
 <div class="game-shell">
 	<div class="theme-backdrop" aria-hidden="true">
-		<div class="theme-halo theme-halo-blue"></div>
-		<div class="theme-halo theme-halo-red"></div>
-		<div class="theme-totem theme-totem-wolf">
-			<img src={symbolArtAssets.wolf} alt="" />
-		</div>
-		<div class="theme-totem theme-totem-crown">
-			<img src={symbolArtAssets.crown} alt="" />
-		</div>
-		<div class="theme-totem theme-totem-wheel theme-totem-wheel-blue">
-			<img src={wheelSymbolAssets.blueWheel} alt="" />
-		</div>
-		<div class="theme-totem theme-totem-wheel theme-totem-wheel-red">
-			<img src={wheelSymbolAssets.redWheel} alt="" />
-		</div>
-		<div class="theme-arch"></div>
-		<div class="theme-floor"></div>
-		<div class="theme-runes"></div>
+		<!-- Base stone walls -->
+		<div class="env-walls"></div>
+
+		<!-- Gothic arches -->
+		<div class="env-arch-center"></div>
+		<div class="env-arch-left"></div>
+		<div class="env-arch-right"></div>
+
+		<!-- Dual lighting: warm left, cool right -->
+		<div class="env-light-warm"></div>
+		<div class="env-light-cool"></div>
+		<div class="env-light-center"></div>
+
+		<!-- Stone pillars -->
+		<div class="env-pillar env-pillar-left"></div>
+		<div class="env-pillar env-pillar-right"></div>
+
+		<!-- Torches / candle glow -->
+		<div class="env-torch env-torch-left"></div>
+		<div class="env-torch env-torch-right"></div>
+
+		<!-- Banners -->
+		<div class="env-banner env-banner-left"></div>
+		<div class="env-banner env-banner-right"></div>
+
+		<!-- Stone floor -->
+		<div class="env-floor"></div>
+		<div class="env-floor-light"></div>
+
+		<!-- Atmospheric dust / haze -->
+		<div class="env-haze"></div>
+		<div class="env-dust env-dust-back"></div>
+		<div class="env-dust env-dust-front"></div>
+
+		<!-- Rune carvings on walls -->
+		<div class="env-runes"></div>
+
+		<!-- Vignette -->
+		<div class="env-vignette"></div>
 	</div>
 
 	<!-- Top Bar -->
@@ -1262,42 +1284,300 @@
 
 	.game-shell {
 		position: relative;
-		isolation: isolate;
 		overflow: hidden;
 		display: grid;
 		grid-template-rows: auto 1fr auto;
 		min-height: 100vh;
 		color: #eff7ff;
-		background:
-			radial-gradient(circle at 18% 12%, rgba(85, 145, 230, 0.18), transparent 20%),
-			radial-gradient(circle at 82% 14%, rgba(181, 84, 48, 0.16), transparent 18%),
-			linear-gradient(180deg, #0d1722 0%, #08111a 56%, #060d15 100%);
+		background: transparent;
 	}
 
-	/* ── Backdrop ─────────────────────────────────────────── */
+	/* ── Environment — Medieval Castle Throne Room ──────── */
 
 	.theme-backdrop {
 		position: absolute;
 		inset: 0;
 		overflow: hidden;
 		pointer-events: none;
-		z-index: -1;
+		z-index: 0;
 	}
 
-	.theme-halo, .theme-totem, .theme-arch, .theme-floor, .theme-runes { position: absolute; }
-	.theme-halo { filter: blur(18px); opacity: 0.9; }
-	.theme-halo-blue { top: -72px; left: -48px; width: 420px; height: 420px; background: radial-gradient(circle, rgba(128, 192, 255, 0.16) 0%, rgba(35, 87, 166, 0.18) 28%, transparent 72%); }
-	.theme-halo-red { top: 84px; right: -28px; width: 360px; height: 360px; background: radial-gradient(circle, rgba(255, 177, 118, 0.12) 0%, rgba(154, 65, 36, 0.16) 34%, transparent 74%); }
-	.theme-arch { top: 60px; left: 50%; width: min(980px, 88vw); height: 880px; transform: translateX(-50%); border-radius: 48% 48% 12% 12% / 18% 18% 8% 8%; background: radial-gradient(circle at 50% 12%, rgba(137, 189, 242, 0.08), transparent 24%), linear-gradient(180deg, rgba(53, 68, 86, 0.34), rgba(14, 24, 35, 0.06) 22%, transparent 76%); box-shadow: inset 0 0 0 1px rgba(154, 185, 214, 0.06), inset 0 -80px 120px rgba(7, 13, 21, 0.3); mask: radial-gradient(circle at 50% -16%, transparent 34%, #000 34.8%) top/100% 56% no-repeat, linear-gradient(#000, #000) bottom/100% 78% no-repeat; opacity: 0.62; }
-	.theme-floor { left: -8%; right: -8%; bottom: -120px; height: 320px; background: radial-gradient(circle at 50% 0%, rgba(255, 187, 111, 0.12), transparent 28%), linear-gradient(180deg, rgba(28, 20, 18, 0) 0%, rgba(24, 17, 15, 0.32) 46%, rgba(11, 8, 10, 0.76) 100%); transform: perspective(1200px) rotateX(72deg); transform-origin: top center; opacity: 0.74; }
-	.theme-runes { inset: 0; background: radial-gradient(circle at 50% 50%, rgba(113, 171, 234, 0.06), transparent 44%), url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='280' height='280' viewBox='0 0 280 280'%3E%3Cg fill='none' stroke='rgba(151,188,219,0.16)' stroke-width='2' stroke-linecap='round'%3E%3Cpath d='M46 64 L64 40 L82 64 L64 88 Z'/%3E%3Cpath d='M180 56 L206 56 L194 86 L222 86'/%3E%3Cpath d='M104 184 L126 160 L148 184 L126 208 Z'/%3E%3Cpath d='M210 194 L226 168 L242 194 L226 220 Z'/%3E%3Cpath d='M56 214 L84 184 L84 224'/%3E%3C/g%3E%3C/svg%3E"); background-size: auto, 280px 280px; mix-blend-mode: screen; opacity: 0.15; }
-	.theme-totem { filter: drop-shadow(0 28px 40px rgba(2, 6, 11, 0.48)); opacity: 0.22; mix-blend-mode: screen; }
-	.theme-totem img { display: block; width: 100%; height: auto; }
-	.theme-totem-wolf { left: 2%; top: 48px; width: clamp(160px, 18vw, 280px); transform: rotate(-7deg); opacity: 0.14; }
-	.theme-totem-crown { right: 4%; top: 68px; width: clamp(140px, 14vw, 220px); transform: rotate(8deg); opacity: 0.15; }
-	.theme-totem-wheel { width: clamp(150px, 16vw, 240px); opacity: 0.16; }
-	.theme-totem-wheel-blue { left: 6%; bottom: 120px; transform: rotate(-12deg); }
-	.theme-totem-wheel-red { right: 8%; bottom: 108px; transform: rotate(10deg); }
+	.theme-backdrop > div { position: absolute; }
+
+	/* Stone walls — dark base with subtle texture */
+	.env-walls {
+		inset: 0;
+		background:
+			/* stone block pattern */
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'%3E%3Crect width='120' height='80' fill='%23141218'/%3E%3Cpath d='M0 0h60v40H0zM60 0h60v40H60zM30 40h60v40H30zM90 40h30v40H90zM0 40h30v40H0z' fill='none' stroke='rgba(80,70,65,0.12)' stroke-width='1'/%3E%3C/svg%3E"),
+			linear-gradient(180deg,
+				#0e0c14 0%,
+				#121018 8%,
+				#16131c 20%,
+				#181520 40%,
+				#16131c 60%,
+				#141118 75%,
+				#100e14 90%,
+				#0c0a10 100%
+			);
+		background-size: 120px 80px, 100% 100%;
+	}
+
+	/* Center gothic arch — behind the board */
+	.env-arch-center {
+		top: 0; left: 50%; width: min(850px, 76vw); height: 85%;
+		transform: translateX(-50%);
+		border-radius: 45% 45% 0 0 / 22% 22% 0 0;
+		background:
+			radial-gradient(circle at 50% 15%, rgba(100, 80, 50, 0.08) 0%, transparent 30%),
+			linear-gradient(180deg,
+				rgba(35, 28, 40, 0.6) 0%,
+				rgba(25, 20, 30, 0.4) 15%,
+				rgba(18, 15, 22, 0.2) 35%,
+				transparent 60%
+			);
+		box-shadow:
+			inset 0 0 0 3px rgba(90, 75, 55, 0.1),
+			inset 0 3px 0 rgba(130, 110, 80, 0.06),
+			inset 0 -60px 100px rgba(8, 6, 12, 0.4);
+	}
+
+	/* Side arches — smaller pointed arches on left and right */
+	.env-arch-left {
+		top: 5%; left: 2%; width: 22%; height: 60%;
+		border-radius: 45% 45% 0 0 / 30% 30% 0 0;
+		background: linear-gradient(180deg,
+			rgba(30, 22, 18, 0.5) 0%,
+			rgba(22, 16, 14, 0.3) 30%,
+			transparent 65%
+		);
+		box-shadow: inset 0 0 0 2px rgba(80, 60, 45, 0.08);
+	}
+
+	.env-arch-right {
+		top: 5%; right: 2%; width: 22%; height: 60%;
+		border-radius: 45% 45% 0 0 / 30% 30% 0 0;
+		background: linear-gradient(180deg,
+			rgba(18, 22, 35, 0.5) 0%,
+			rgba(14, 16, 28, 0.3) 30%,
+			transparent 65%
+		);
+		box-shadow: inset 0 0 0 2px rgba(55, 65, 90, 0.08);
+	}
+
+	/* WARM LIGHT — orange/amber torchlight on left half */
+	.env-light-warm {
+		top: 0; left: 0; width: 55%; bottom: 0;
+		background:
+			/* main torch glow */
+			radial-gradient(ellipse 70% 50% at 15% 30%, rgba(255, 140, 40, 0.22) 0%, transparent 60%),
+			/* secondary warm fill */
+			radial-gradient(ellipse 80% 60% at 25% 45%, rgba(200, 100, 20, 0.12) 0%, transparent 55%),
+			/* warm ambient */
+			radial-gradient(ellipse 60% 40% at 10% 60%, rgba(180, 80, 15, 0.08) 0%, transparent 50%),
+			/* upper warm wash */
+			linear-gradient(135deg, rgba(180, 90, 20, 0.1) 0%, transparent 40%);
+	}
+
+	/* COOL LIGHT — blue mystical light on right half */
+	.env-light-cool {
+		top: 0; right: 0; width: 55%; bottom: 0;
+		background:
+			/* main blue glow */
+			radial-gradient(ellipse 70% 50% at 85% 30%, rgba(50, 100, 220, 0.2) 0%, transparent 60%),
+			/* secondary cool fill */
+			radial-gradient(ellipse 80% 60% at 75% 45%, rgba(30, 70, 180, 0.1) 0%, transparent 55%),
+			/* cool ambient */
+			radial-gradient(ellipse 60% 40% at 90% 60%, rgba(25, 60, 160, 0.07) 0%, transparent 50%),
+			/* upper cool wash */
+			linear-gradient(225deg, rgba(30, 70, 180, 0.08) 0%, transparent 40%);
+	}
+
+	/* Center convergence — where warm and cool meet */
+	.env-light-center {
+		inset: 0;
+		background:
+			/* warm/cool blend behind the board */
+			radial-gradient(ellipse 40% 50% at 50% 42%,
+				rgba(120, 80, 50, 0.08) 0%,
+				transparent 60%
+			),
+			/* subtle top light from above */
+			radial-gradient(ellipse 50% 20% at 50% 5%, rgba(80, 70, 55, 0.06) 0%, transparent 50%);
+	}
+
+	/* Stone pillars — dark vertical columns */
+	.env-pillar {
+		top: 0; bottom: 0; width: 5%;
+		background: linear-gradient(180deg,
+			rgba(35, 28, 24, 0.8) 0%,
+			rgba(30, 24, 20, 0.7) 30%,
+			rgba(25, 20, 18, 0.65) 60%,
+			rgba(20, 16, 14, 0.6) 100%
+		);
+	}
+
+	.env-pillar-left {
+		left: 16%;
+		box-shadow:
+			4px 0 20px rgba(200, 120, 40, 0.08),
+			-2px 0 15px rgba(0, 0, 0, 0.3);
+	}
+
+	.env-pillar-right {
+		right: 16%;
+		box-shadow:
+			-4px 0 20px rgba(40, 70, 160, 0.08),
+			2px 0 15px rgba(0, 0, 0, 0.3);
+	}
+
+	/* Torches — bright flame glow */
+	.env-torch {
+		width: 60px; height: 120px;
+		border-radius: 50%;
+		filter: blur(12px);
+	}
+
+	.env-torch-left {
+		top: 22%; left: 12%;
+		background: radial-gradient(ellipse 100% 70% at 50% 40%,
+			rgba(255, 200, 60, 0.6) 0%,
+			rgba(255, 150, 30, 0.35) 25%,
+			rgba(255, 100, 10, 0.15) 50%,
+			transparent 75%
+		);
+		animation: torchFlicker 2s ease-in-out infinite;
+	}
+
+	.env-torch-right {
+		top: 22%; right: 12%;
+		background: radial-gradient(ellipse 100% 70% at 50% 40%,
+			rgba(100, 160, 255, 0.4) 0%,
+			rgba(60, 120, 240, 0.22) 25%,
+			rgba(30, 80, 200, 0.08) 50%,
+			transparent 75%
+		);
+		animation: torchFlicker 2s ease-in-out infinite 1s;
+	}
+
+	/* Banners — red/warm left, blue right */
+	.env-banner {
+		width: 28px; height: 180px;
+	}
+
+	.env-banner-left {
+		top: 8%; left: 10%;
+		background: linear-gradient(180deg,
+			rgba(160, 30, 20, 0.5) 0%,
+			rgba(140, 25, 18, 0.4) 20%,
+			rgba(120, 20, 15, 0.35) 60%,
+			rgba(100, 18, 12, 0.2) 85%,
+			transparent 100%
+		);
+		border-radius: 2px 2px 4px 4px;
+		transform: rotate(2deg);
+	}
+
+	.env-banner-right {
+		top: 8%; right: 10%;
+		background: linear-gradient(180deg,
+			rgba(30, 50, 140, 0.45) 0%,
+			rgba(25, 40, 120, 0.35) 20%,
+			rgba(20, 35, 100, 0.3) 60%,
+			rgba(15, 28, 80, 0.18) 85%,
+			transparent 100%
+		);
+		border-radius: 2px 2px 4px 4px;
+		transform: rotate(-2deg);
+	}
+
+	/* Stone floor — perspective ground with warm/cool reflection */
+	.env-floor {
+		left: 0; right: 0; bottom: 0; height: 30%;
+		background:
+			/* stone tile pattern */
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230e0c10'/%3E%3Cpath d='M0 0h50v50H0zM50 50h50v50H50z' fill='none' stroke='rgba(70,60,55,0.1)' stroke-width='1'/%3E%3C/svg%3E"),
+			linear-gradient(180deg,
+				rgba(20, 16, 14, 0.5) 0%,
+				rgba(14, 12, 10, 0.85) 30%,
+				rgba(10, 8, 8, 0.95) 60%,
+				#080708 100%
+			);
+		background-size: 100px 100px, 100% 100%;
+		transform: perspective(800px) rotateX(25deg);
+		transform-origin: top center;
+	}
+
+	/* Floor light reflections — warm left, cool right */
+	.env-floor-light {
+		left: 0; right: 0; bottom: 0; height: 25%;
+		background:
+			radial-gradient(ellipse 40% 50% at 25% 30%, rgba(200, 120, 40, 0.1) 0%, transparent 55%),
+			radial-gradient(ellipse 40% 50% at 75% 30%, rgba(40, 80, 180, 0.08) 0%, transparent 55%);
+	}
+
+	/* Atmospheric dust / haze */
+	.env-haze {
+		inset: 0;
+		background:
+			radial-gradient(ellipse 70% 20% at 50% 40%, rgba(40, 30, 35, 0.1) 0%, transparent 55%),
+			radial-gradient(ellipse 40% 15% at 20% 35%, rgba(80, 50, 25, 0.06) 0%, transparent 50%),
+			radial-gradient(ellipse 40% 15% at 80% 35%, rgba(25, 40, 80, 0.05) 0%, transparent 48%);
+		animation: hazeDrift 18s ease-in-out infinite;
+	}
+
+	/* Floating dust particles */
+	.env-dust-back {
+		inset: 0;
+		background: transparent;
+		box-shadow:
+			/* warm side particles */
+			10vw 30vh 0 1.2px rgba(255, 180, 80, 0.4),
+			18vw 55vh 0 0.8px rgba(255, 160, 60, 0.35),
+			25vw 42vh 0 1px rgba(255, 200, 100, 0.3),
+			12vw 70vh 0 1.4px rgba(255, 170, 70, 0.38),
+			35vw 25vh 0 0.9px rgba(255, 190, 90, 0.32),
+			/* cool side particles */
+			80vw 35vh 0 1px rgba(120, 160, 255, 0.35),
+			88vw 58vh 0 0.8px rgba(100, 140, 240, 0.3),
+			72vw 45vh 0 1.2px rgba(130, 170, 255, 0.33),
+			90vw 68vh 0 1px rgba(110, 150, 250, 0.28),
+			65vw 28vh 0 0.9px rgba(120, 165, 255, 0.3),
+			/* neutral center */
+			48vw 52vh 0 0.8px rgba(180, 170, 160, 0.25),
+			55vw 38vh 0 1px rgba(170, 160, 150, 0.22);
+		animation: dustDriftBack 25s linear infinite;
+	}
+
+	.env-dust-front {
+		inset: 0;
+		background: transparent;
+		box-shadow:
+			15vw 45vh 0 2px rgba(255, 190, 80, 0.5),
+			22vw 65vh 0 1.5px rgba(255, 170, 60, 0.45),
+			82vw 40vh 0 1.8px rgba(110, 155, 255, 0.45),
+			75vw 62vh 0 1.5px rgba(100, 145, 250, 0.4),
+			50vw 48vh 0 1.2px rgba(200, 180, 160, 0.3);
+		animation: dustDriftFront 20s linear infinite;
+		filter: blur(0.5px);
+	}
+
+	/* Rune carvings on walls */
+	.env-runes {
+		inset: 0;
+		background:
+			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke-width='1.5' stroke-linecap='round'%3E%3Cg stroke='rgba(200,150,80,0.08)'%3E%3Cpath d='M30 60 L50 35 L70 60 L50 85Z'/%3E%3Cpath d='M25 160 L55 160 L40 190 L70 190'/%3E%3Cpath d='M30 260 L60 230 L60 270'/%3E%3C/g%3E%3Cg stroke='rgba(80,120,200,0.07)'%3E%3Cpath d='M250 60 L270 35 L290 60 L270 85Z'/%3E%3Cpath d='M250 160 L280 160 L265 190 L295 190'/%3E%3Cpath d='M260 260 L290 230 L290 270'/%3E%3C/g%3E%3Cg stroke='rgba(140,130,120,0.06)'%3E%3Cpath d='M140 80 L160 55 L180 80 L160 105Z'/%3E%3Cpath d='M145 240 L175 210 L175 250'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+		background-size: 320px 320px;
+		mix-blend-mode: screen;
+		opacity: 0.2;
+	}
+
+	/* Heavy vignette */
+	.env-vignette {
+		inset: 0;
+		background: radial-gradient(ellipse 56% 50% at 50% 40%, transparent 28%, rgba(4, 3, 6, 0.94) 100%);
+		pointer-events: none;
+	}
 
 	/* ── Top Bar ──────────────────────────────────────────── */
 
@@ -1754,7 +2034,38 @@
 		color: rgba(202, 223, 243, 0.76);
 	}
 
-	/* ── Animations ───────────────────────────────────────── */
+	/* ── Environment Animations ──────────────────────────── */
+
+	@keyframes torchFlicker {
+		0%, 100% { opacity: 0.75; transform: scale(1) translateY(0); }
+		15% { opacity: 1; transform: scale(1.1) translateY(-2px); }
+		30% { opacity: 0.82; transform: scale(0.95) translateY(1px); }
+		50% { opacity: 0.95; transform: scale(1.05) translateY(-1px); }
+		70% { opacity: 0.78; transform: scale(0.97) translateY(0); }
+		85% { opacity: 0.93; transform: scale(1.03) translateY(-1px); }
+	}
+
+	@keyframes hazeDrift {
+		0% { transform: translateX(-1.5%); opacity: 0.85; }
+		50% { transform: translateX(1.5%); opacity: 1; }
+		100% { transform: translateX(-1.5%); opacity: 0.85; }
+	}
+
+	@keyframes dustDriftBack {
+		0% { transform: translate(0, 0); }
+		33% { transform: translate(5px, -8px); }
+		66% { transform: translate(-3px, -16px); }
+		100% { transform: translate(0, -24px); }
+	}
+
+	@keyframes dustDriftFront {
+		0% { transform: translate(0, 0); }
+		33% { transform: translate(-6px, -10px); }
+		66% { transform: translate(4px, -20px); }
+		100% { transform: translate(0, -30px); }
+	}
+
+	/* ── UI Animations ───────────────────────────────────── */
 
 	@keyframes featureBannerEnter {
 		from { opacity: 0; transform: translateY(-10px) scale(0.985); }
