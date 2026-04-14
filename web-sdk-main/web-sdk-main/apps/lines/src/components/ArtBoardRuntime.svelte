@@ -62,6 +62,7 @@
 
 	<div class="hud-wrap">
 		<img class="hud-art" src={hudControlsArt} alt="Slot controls" draggable="false" />
+
 		<div class="spin-core-shell" aria-hidden="true">
 			<div class="spin-core-button">SPIN</div>
 		</div>
@@ -115,9 +116,9 @@
 
 	.board-wrap {
 		position: absolute;
-		left: 50.1%;
-		top: 44.8%;
-		width: 49.6%;
+		left: 50.15%;
+		top: 46%;
+		width: 49.9%;
 		transform: translate(-50%, -50%);
 		filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.46));
 	}
@@ -132,9 +133,9 @@
 	.board-grid-window {
 		position: absolute;
 		left: 5.78%;
-		top: 11.2%;
+		top: 12.6%;
 		width: 88.28%;
-		height: 78.9%;
+		height: 75.7%;
 		overflow: hidden;
 		border-radius: 2%;
 	}
@@ -167,7 +168,7 @@
 	.hud-wrap {
 		position: absolute;
 		left: 50%;
-		bottom: 0.2%;
+		bottom: 0.25%;
 		width: 69.4%;
 		transform: translateX(-50%);
 		filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.5));
@@ -182,9 +183,9 @@
 
 	.spin-core-shell {
 		position: absolute;
-		left: 35.8%;
-		top: -7.8%;
-		width: 13.7%;
+		left: 41.3%;
+		top: -3.9%;
+		width: 8.8%;
 		aspect-ratio: 1;
 		border-radius: 50%;
 		pointer-events: none;
@@ -193,20 +194,16 @@
 	}
 
 	.spin-core-button {
-		width: 74%;
-		height: 74%;
+		width: 100%;
+		height: 100%;
 		border-radius: 50%;
 		display: grid;
 		place-items: center;
-		font: 900 clamp(12px, 1.25vw, 24px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
+		font: 900 clamp(12px, 1.15vw, 22px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
 		letter-spacing: 0.04em;
 		color: #082544;
-		background:
-			radial-gradient(circle at 38% 28%, rgba(233, 247, 255, 0.96), rgba(171, 222, 255, 0.96) 34%, rgba(83, 166, 236, 0.98) 68%, rgba(33, 99, 174, 0.98) 100%);
-		box-shadow:
-			inset 0 2px 4px rgba(255, 255, 255, 0.58),
-			inset 0 -4px 8px rgba(10, 52, 110, 0.42),
-			0 0 18px rgba(114, 194, 255, 0.18);
+		background: radial-gradient(circle at 38% 28%, rgba(233, 247, 255, 0.96), rgba(171, 222, 255, 0.96) 34%, rgba(83, 166, 236, 0.98) 68%, rgba(33, 99, 174, 0.98) 100%);
+		box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.58), inset 0 -4px 8px rgba(10, 52, 110, 0.42), 0 0 18px rgba(114, 194, 255, 0.18);
 	}
 
 	.hud-readout {
@@ -221,21 +218,21 @@
 	}
 
 	.balance-readout {
-		left: 5.8%;
-		top: 37.4%;
+		left: 5.9%;
+		top: 37.6%;
 		width: 25.2%;
 	}
 
 	.bet-readout {
-		left: 56.8%;
-		top: 37.1%;
-		width: 20.5%;
+		left: 57.1%;
+		top: 37.2%;
+		width: 19.8%;
 	}
 
 	.win-readout {
-		left: 56.2%;
-		top: 70.2%;
-		width: 27.8%;
+		left: 56.45%;
+		top: 69.9%;
+		width: 27.1%;
 	}
 
 	.hud-hitbox {
@@ -268,42 +265,42 @@
 	}
 
 	.spin-hitbox {
-		left: 33.3%;
-		top: -9%;
-		width: 18.5%;
-		height: 86%;
+		left: 39.8%;
+		top: -4.5%;
+		width: 11.7%;
+		height: 59%;
 		border-radius: 50%;
 	}
 
 	.bet-minus-hitbox {
 		left: 76.6%;
-		top: 21.2%;
+		top: 21%;
 		width: 4.1%;
 		height: 21.4%;
 		border-radius: 50%;
 	}
 
 	.bet-plus-hitbox {
-		left: 81%;
-		top: 21.2%;
+		left: 80.9%;
+		top: 21%;
 		width: 4.1%;
 		height: 21.4%;
 		border-radius: 50%;
 	}
 
 	.quick-spin-hitbox {
-		left: 89.7%;
-		top: 14.6%;
-		width: 7.8%;
-		height: 28.8%;
+		left: 89.8%;
+		top: 14.7%;
+		width: 7.5%;
+		height: 28.3%;
 		border-radius: 999px;
 	}
 
 	.auto-spin-hitbox {
-		left: 87.4%;
-		top: 53%;
+		left: 87.3%;
+		top: 53.2%;
 		width: 11.1%;
-		height: 19.6%;
+		height: 19.2%;
 		border-radius: 10px;
 	}
 
