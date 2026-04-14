@@ -62,16 +62,19 @@
 
 	<div class="hud-wrap">
 		<img class="hud-art" src={hudControlsArt} alt="Slot controls" draggable="false" />
+		<div class="spin-core-shell" aria-hidden="true">
+			<div class="spin-core-button">SPIN</div>
+		</div>
 
 		<div class="hud-readout balance-readout">{formatNumber(balance)}</div>
 		<div class="hud-readout bet-readout">{formatNumber(betSize)}</div>
 		<div class="hud-readout win-readout">{formatNumber(win)}</div>
 
-		<button type="button" class="hud-hitbox spin-hitbox" on:click={spin} aria-label={isSpinning ? 'Spinning' : 'Spin'}></button>
-		<button type="button" class="hud-hitbox bet-minus-hitbox" on:click={() => updateBet(-1)} aria-label="Decrease bet"></button>
-		<button type="button" class="hud-hitbox bet-plus-hitbox" on:click={() => updateBet(1)} aria-label="Increase bet"></button>
-		<button type="button" class="hud-hitbox quick-spin-hitbox" class:is-active={quickSpin} on:click={toggleQuickSpin} aria-pressed={quickSpin} aria-label="Toggle quick spin"></button>
-		<button type="button" class="hud-hitbox auto-spin-hitbox" class:is-active={autoSpin} on:click={toggleAutoSpin} aria-pressed={autoSpin} aria-label="Toggle auto spin"></button>
+		<button type="button" class="hud-hitbox spin-hitbox" on:click={spin} aria-label={isSpinning ? 'Spinning' : 'Spin'} title={isSpinning ? 'Spinning' : 'Spin'}></button>
+		<button type="button" class="hud-hitbox bet-minus-hitbox" on:click={() => updateBet(-1)} aria-label="Decrease bet" title="Decrease bet"></button>
+		<button type="button" class="hud-hitbox bet-plus-hitbox" on:click={() => updateBet(1)} aria-label="Increase bet" title="Increase bet"></button>
+		<button type="button" class="hud-hitbox quick-spin-hitbox" class:is-active={quickSpin} on:click={toggleQuickSpin} aria-pressed={quickSpin} aria-label="Toggle quick spin" title="Quick spin"></button>
+		<button type="button" class="hud-hitbox auto-spin-hitbox" class:is-active={autoSpin} on:click={toggleAutoSpin} aria-pressed={autoSpin} aria-label="Toggle auto spin" title="Auto spin"></button>
 	</div>
 </div>
 
@@ -113,8 +116,8 @@
 	.board-wrap {
 		position: absolute;
 		left: 50.1%;
-		top: 45.1%;
-		width: 50.2%;
+		top: 44.8%;
+		width: 49.6%;
 		transform: translate(-50%, -50%);
 		filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.46));
 	}
@@ -129,9 +132,9 @@
 	.board-grid-window {
 		position: absolute;
 		left: 5.78%;
-		top: 9.58%;
+		top: 11.2%;
 		width: 88.28%;
-		height: 82.22%;
+		height: 78.9%;
 		overflow: hidden;
 		border-radius: 2%;
 	}
@@ -177,6 +180,35 @@
 		pointer-events: none;
 	}
 
+	.spin-core-shell {
+		position: absolute;
+		left: 35.8%;
+		top: -7.8%;
+		width: 13.7%;
+		aspect-ratio: 1;
+		border-radius: 50%;
+		pointer-events: none;
+		display: grid;
+		place-items: center;
+	}
+
+	.spin-core-button {
+		width: 74%;
+		height: 74%;
+		border-radius: 50%;
+		display: grid;
+		place-items: center;
+		font: 900 clamp(12px, 1.25vw, 24px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
+		letter-spacing: 0.04em;
+		color: #082544;
+		background:
+			radial-gradient(circle at 38% 28%, rgba(233, 247, 255, 0.96), rgba(171, 222, 255, 0.96) 34%, rgba(83, 166, 236, 0.98) 68%, rgba(33, 99, 174, 0.98) 100%);
+		box-shadow:
+			inset 0 2px 4px rgba(255, 255, 255, 0.58),
+			inset 0 -4px 8px rgba(10, 52, 110, 0.42),
+			0 0 18px rgba(114, 194, 255, 0.18);
+	}
+
 	.hud-readout {
 		position: absolute;
 		height: 12.4%;
@@ -190,20 +222,20 @@
 
 	.balance-readout {
 		left: 5.8%;
-		top: 36.2%;
+		top: 37.4%;
 		width: 25.2%;
 	}
 
 	.bet-readout {
-		left: 57.6%;
-		top: 36.2%;
-		width: 19.2%;
+		left: 56.8%;
+		top: 37.1%;
+		width: 20.5%;
 	}
 
 	.win-readout {
-		left: 56.7%;
-		top: 69.4%;
-		width: 26.2%;
+		left: 56.2%;
+		top: 70.2%;
+		width: 27.8%;
 	}
 
 	.hud-hitbox {
@@ -236,42 +268,42 @@
 	}
 
 	.spin-hitbox {
-		left: 34.1%;
-		top: 2.5%;
-		width: 17.4%;
-		height: 76.4%;
+		left: 33.3%;
+		top: -9%;
+		width: 18.5%;
+		height: 86%;
 		border-radius: 50%;
 	}
 
 	.bet-minus-hitbox {
 		left: 76.6%;
-		top: 20.6%;
+		top: 21.2%;
 		width: 4.1%;
-		height: 22.2%;
+		height: 21.4%;
 		border-radius: 50%;
 	}
 
 	.bet-plus-hitbox {
-		left: 80.8%;
-		top: 20.6%;
+		left: 81%;
+		top: 21.2%;
 		width: 4.1%;
-		height: 22.2%;
+		height: 21.4%;
 		border-radius: 50%;
 	}
 
 	.quick-spin-hitbox {
-		left: 90%;
-		top: 15.6%;
-		width: 7.2%;
-		height: 26.8%;
+		left: 89.7%;
+		top: 14.6%;
+		width: 7.8%;
+		height: 28.8%;
 		border-radius: 999px;
 	}
 
 	.auto-spin-hitbox {
-		left: 87.8%;
-		top: 53.8%;
-		width: 10.2%;
-		height: 18.4%;
+		left: 87.4%;
+		top: 53%;
+		width: 11.1%;
+		height: 19.6%;
 		border-radius: 10px;
 	}
 
