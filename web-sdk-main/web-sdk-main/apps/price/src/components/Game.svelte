@@ -4,10 +4,9 @@
 	import { EnablePixiExtension } from 'components-pixi';
 	import { EnableHotkey } from 'components-shared';
 	import { MainContainer } from 'components-layout';
-	import { App, Text, REM } from 'pixi-svelte';
+	import { App } from 'pixi-svelte';
 	import { stateModal } from 'state-shared';
 
-	import { UI, UiGameName } from 'components-ui-pixi';
 	import { GameVersion, Modals } from 'components-ui-html';
 
 	import { getContext } from '../game/context';
@@ -28,6 +27,7 @@
 	import ExpandingWilds from './ExpandingWilds.svelte';
 	import StickyBoard from './StickyBoard.svelte';
 	import I18nTest from './I18nTest.svelte';
+	import Hud from './Hud.svelte';
 
 	const context = getContext();
 
@@ -39,6 +39,10 @@
 		},
 	});
 </script>
+
+{#if !context.stateLayout.showLoadingScreen}
+	<Hud />
+{/if}
 
 <App>
 	<EnableSound />
@@ -52,11 +56,6 @@
 		<LoadingScreen onloaded={() => (context.stateLayout.showLoadingScreen = false)} />
 	{:else}
 		<ResumeBet />
-		<!--
-			The reason why <Sound /> is rendered after clicking the loading screen:
-			"Autoplay with sound is allowed if: The user has interacted with the domain (click, tap, etc.)."
-			Ref: https://developer.chrome.com/blog/autoplay
-		-->
 		<Sound />
 
 		<MainContainer>
@@ -70,24 +69,6 @@
 			<StickyBoard />
 		</MainContainer>
 
-		<UI>
-			{#snippet gameName()}
-				<UiGameName name="PRICE GAME" />
-			{/snippet}
-			{#snippet logo()}
-				<Text
-					anchor={{ x: 1, y: 0 }}
-					text="ADD YOUR LOGO"
-					style={{
-						fontFamily: 'proxima-nova',
-						fontSize: REM * 1.5,
-						fontWeight: '600',
-						lineHeight: REM * 2,
-						fill: 0xffffff,
-					}}
-				/>
-			{/snippet}
-		</UI>
 		<Win />
 		<FreeSpinIntro />
 		{#if ['desktop', 'landscape'].includes(context.stateLayoutDerived.layoutType())}

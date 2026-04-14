@@ -18,8 +18,8 @@ import {
 	symbolMeta,
 } from './dualWheelWorkshopConfig.ts';
 import type {
-	BonusTrigger,
 	BonusMode,
+	BonusTrigger,
 	LineResult,
 	Position,
 	RegularSymbolId,
@@ -326,28 +326,6 @@ export function randomLiveBaseGameBoard(rng: RandomFn = Math.random): SymbolId[]
 	return injectScatterSymbols(applyLiveBaseGameWheelProfile(randomBoard(rng), rng), rng);
 }
 
-function injectScatterSymbols(board: SymbolId[][], rng: RandomFn = Math.random): SymbolId[][] {
-	const sealCount = pickWeightedCount(LIVE_BASE_GAME_BONUS_SEAL_WEIGHTS, rng);
-	if (sealCount <= 0) return board;
-
-	const next = cloneBoard(board);
-	const availablePositions = shufflePositions(
-		Array.from({ length: ROWS * REELS }, (_, index) => ({
-			row: Math.floor(index / REELS),
-			column: index % REELS,
-		})).filter(({ row, column }) => !isWild(next[row][column])),
-		rng,
-	);
-
-	for (let index = 0; index < sealCount && availablePositions.length > 0; index += 1) {
-		const position = availablePositions.shift();
-		if (!position) break;
-		next[position.row][position.column] = 'scatter';
-	}
-
-	return next;
-}
-
 export function pickWeightedSegmentValue(
 	segments: readonly number[],
 	weights: readonly number[],
@@ -512,6 +490,49 @@ export function deriveSpinMood(results: LineResult[], bet: number): SpinMood {
 	return 'base';
 }
 
+function injectScatterSymbols(board: SymbolId[][], rng: RandomFn = Math.random): SymbolId[][] {
+	const sealCount = pickWeightedCount(LIVE_BASE_GAME_BONUS_SEAL_WEIGHTS, rng);
+	if (sealCount <= 0) return board;
+
+	const next = cloneBoard(board);
+	const availablePositions = shufflePositions(
+		Array.from({ length: ROWS * REELS }, (_, index) => ({
+			row: Math.floor(index / REELS),
+			column: index % REELS,
+		})).filter(({ row, column }) => !isWild(next[row][column])),
+		rng,
+	);
+
+	for (let index = 0; index < sealCount && availablePositions.length > 0; index += 1) {
+		const position = availablePositions.shift();
+		if (!position) break;
+		next[position.row][position.column] = 'scatter';
+	}
+
+	return next;
+}
+
+export function resolveBonusTriggerFromBoard(board: SymbolId[][]): BonusTrigger | null {
+	const positions: Position[] = [];
+
+	for (const [row, line] of board.entries()) {
+		for (const [column, symbol] of line.entries()) {
+			if (symbol !== 'scatter') continue;
+			positions.push({ row, column });
+		}
+	}
+
+	if (positions.length >= BONUS_ROUND_CONFIG.super.triggerCount) {
+		return { mode: 'super', count: positions.length, positions };
+	}
+
+	if (positions.length >= BONUS_ROUND_CONFIG.regular.triggerCount) {
+		return { mode: 'regular', count: positions.length, positions };
+	}
+
+	return null;
+}
+
 export function buildWheelQueue(results: LineResult[]): LineResult['wheels'] {
 	const queue: LineResult['wheels'] = [];
 	const seen = new Set<string>();
@@ -528,41 +549,12 @@ export function buildWheelQueue(results: LineResult[]): LineResult['wheels'] {
 	return queue;
 }
 
-export function resolveBonusTriggerFromBoard(board: SymbolId[][]): BonusTrigger | null {
-	const positions: Position[] = [];
-
-	for (const [row, line] of board.entries()) {
-		for (const [column, symbol] of line.entries()) {
-			if (symbol !== 'scatter') continue;
-			positions.push({ row, column });
-		}
-	}
-
-	if (positions.length >= BONUS_ROUND_CONFIG.super.triggerCount) {
-		return {
-			mode: 'super',
-			count: positions.length,
-			positions,
-		};
-	}
-
-	if (positions.length >= BONUS_ROUND_CONFIG.regular.triggerCount) {
-		return {
-			mode: 'regular',
-			count: positions.length,
-			positions,
-		};
-	}
-
-	return null;
-}
-
 export function buildLiveSpinMath(bet: number, rng: RandomFn = Math.random): LiveSpinMathResult {
 	const board = randomLiveBaseGameBoard(rng);
+	const bonusTrigger = resolveBonusTriggerFromBoard(board);
 	const wheelResults = buildWheelResults(board, rng);
 	const lineResults = evaluateBoard(board, wheelResults, bet);
 	const wheelQueue = buildWheelQueue(lineResults);
-	const bonusTrigger = resolveBonusTriggerFromBoard(board);
 	const rawWin = lineResults.reduce((sum, result) => sum + result.payout, 0);
 	const totalWin = clampWin(rawWin, bet);
 	const spinMood =
@@ -574,10 +566,10 @@ export function buildLiveSpinMath(bet: number, rng: RandomFn = Math.random): Liv
 
 	return {
 		board,
+		bonusTrigger,
 		wheelResults,
 		lineResults,
 		wheelQueue,
-		bonusTrigger,
 		totalWin,
 		maxWinCapped: totalWin < rawWin,
 		spinMood,
@@ -605,11 +597,19 @@ function buildProfileSpinMath(
 		wheelResults,
 		lineResults,
 		wheelQueue,
-		bonusTrigger: null,
 		totalWin,
 		maxWinCapped: totalWin < rawWin,
 		spinMood,
 	};
+}
+
+function rollBonusTrigger(rng: RandomFn): BonusMode | null {
+	const roll = rng();
+	if (roll < BONUS_ROUND_CONFIG.super.triggerChance) return 'super';
+	if (roll < BONUS_ROUND_CONFIG.super.triggerChance + BONUS_ROUND_CONFIG.regular.triggerChance) {
+		return 'regular';
+	}
+	return null;
 }
 
 export function simulateBonusRoundSession(
@@ -639,13 +639,7 @@ export function simulateBonusRoundSession(
 		spins.push(spin);
 
 		if (config.stickyWheels) {
-			const nextStickyWheelResults = { ...stickyWheelResults };
-			for (const wheel of spin.wheelQueue) {
-				const award = spin.wheelResults[wheelPositionKey(wheel)];
-				if (!award) continue;
-				nextStickyWheelResults[wheelPositionKey(wheel)] = award;
-			}
-			stickyWheelResults = nextStickyWheelResults;
+			stickyWheelResults = { ...stickyWheelResults, ...spin.wheelResults };
 		}
 	}
 
@@ -917,7 +911,7 @@ export function simulateGameSpins(
 
 	for (let index = 0; index < safeSpins; index += 1) {
 		const baseSpin = buildLiveSpinMath(bet, rng);
-		const bonusMode = baseSpin.bonusTrigger?.mode ?? null;
+		const bonusMode = rollBonusTrigger(rng);
 		const bonusRound = bonusMode ? simulateBonusRoundSession(bonusMode, bet, rng) : null;
 		const rawRoundPaid = baseSpin.totalWin + (bonusRound?.totalPaid ?? 0);
 		const totalRoundPaid = clampWin(rawRoundPaid, bet);

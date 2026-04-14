@@ -86,9 +86,17 @@ export const stateGame = $state({
 	stickySymbols: [] as StickySymbol[],
 });
 
+const getBoardYRatio = () => {
+	const layoutType = stateLayoutDerived.layoutType();
+
+	if (layoutType === 'portrait') return 0.365;
+	if (layoutType === 'tablet') return 0.425;
+	return 0.435;
+};
+
 const boardLayout = () => ({
 	x: stateLayoutDerived.mainLayout().width * 0.5,
-	y: stateLayoutDerived.mainLayout().height * 0.5,
+	y: stateLayoutDerived.mainLayout().height * getBoardYRatio(),
 	anchor: { x: 0.5, y: 0.5 },
 	pivot: { x: BOARD_SIZES.width / 2, y: BOARD_SIZES.height / 2 },
 	...BOARD_SIZES,

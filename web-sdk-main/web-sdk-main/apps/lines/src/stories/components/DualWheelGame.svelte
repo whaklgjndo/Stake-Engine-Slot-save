@@ -1,6 +1,8 @@
 <script lang="ts">
 	import { onDestroy } from 'svelte';
 	import DualWheelBoard from './DualWheelBoard.svelte';
+
+	const bgThroneRoom = new URL('../assets/bg-throne-room.png', import.meta.url).href;
 	import {
 		autoplayPresets,
 		BONUS_ROUND_CONFIG,
@@ -34,6 +36,7 @@
 		evaluateBoard as evaluateBoardFromEngine,
 		isWild as isWildFromEngine,
 		randomLiveBaseGameBoard as randomLiveBaseGameBoardFromEngine,
+		resolveBonusTriggerFromBoard,
 		simulateBonusRoundSession,
 		type LiveSpinMathResult,
 		wheelPositionKey as wheelPositionKeyFromEngine,
@@ -43,6 +46,7 @@
 		AudioCueDetail,
 		AudioCueImportance,
 		BonusMode,
+		BonusTrigger,
 		LineTone,
 		LineResult,
 		Point,
@@ -132,6 +136,7 @@
 	let resolveSkipRequested = false;
 	const skipResolvers: Array<() => void> = [];
 	let bonusPreviewState: BonusPreviewState | null = null;
+	let activeBonusTrigger: BonusTrigger | null = null;
 	let regularBuyCost = betSize * PREVIEW_BONUS_BUY_MULTIPLIERS.regular;
 	let superBuyCost = betSize * PREVIEW_BONUS_BUY_MULTIPLIERS.super;
 	let canBuyRegular = false;
@@ -202,15 +207,19 @@
 	$: activeLineTone = activeLine ? resultTone(activeLine) : null;
 	$: activeStageTone = showTotalWin
 		? 'big'
-		: activeWheelState?.type === 'red'
-			? 'big'
-			: activeWheelState
-				? 'medium'
-				: activeLine && resultTone(activeLine) === 'big'
-					? 'big'
-					: activeLine && resultTone(activeLine) === 'medium'
-						? 'medium'
-						: 'idle';
+		: Boolean(activeBonusTrigger)
+			? activeBonusTrigger?.mode === 'super'
+				? 'big'
+				: 'medium'
+			: activeWheelState?.type === 'red'
+				? 'big'
+				: activeWheelState
+					? 'medium'
+					: activeLine && resultTone(activeLine) === 'big'
+						? 'big'
+						: activeLine && resultTone(activeLine) === 'medium'
+							? 'medium'
+							: 'idle';
 	$: blueWheelOverlayStyle = blueWheelStyle(activeWheelState);
 	$: redWheelOverlayStyle = redWheelStyle(activeWheelState);
 	$: featureSpinsRemaining = bonusPreviewState
@@ -516,6 +525,7 @@
 		activeLineIndex = -1;
 		showPayoutChip = false;
 		activeWheelState = null;
+		activeBonusTrigger = null;
 		if (!options.preserveResolvedWheels) resolvedWheelStates = {};
 		wheelResultBursts = [];
 		reelAnticipation = Array(REELS).fill('none');
@@ -623,9 +633,27 @@
 
 	/* ── Core animation pipeline ──────────────────────────── */
 
+	/** Returns a Set of "row-col" keys for positions locked by sticky wheels. */
+	function getStickyLockedKeys(): Set<string> {
+		if (!bonusPreviewState?.stickyWheels) return new Set();
+		return new Set(Object.keys(resolvedWheelStates));
+	}
+
+	/** Overwrites non-locked cells from `source` into `base`, keeping locked cells from `locked` board. */
+	function applyStickyOverlay(base: SymbolId[][], locked: Set<string>, lockSource: SymbolId[][]): SymbolId[][] {
+		if (locked.size === 0) return base;
+		const result = cloneBoard(base);
+		for (const key of locked) {
+			const [row, col] = key.split('-').map(Number);
+			if (row < ROWS && col < REELS) result[row][col] = lockSource[row][col];
+		}
+		return result;
+	}
+
 	async function animateReelsTo(targetBoard: SymbolId[][], anticipation: ReelAnticipation[]): Promise<void> {
+		const stickyKeys = getStickyLockedKeys();
 		reelStates = Array(REELS).fill('spinning');
-		displayBoard = randomLiveBaseGameBoard();
+		displayBoard = applyStickyOverlay(randomLiveBaseGameBoard(), stickyKeys, targetBoard);
 		const targetColumns = Array.from({ length: REELS }, (_, column) => columnValues(targetBoard, column));
 		const spinStart = performance.now();
 		const manualStopStep = quickSpinEnabled ? 34 : 56;
@@ -667,14 +695,14 @@
 							const nextColumn = braking && !manualStopActive && anticipation[column] !== 'none'
 								? brakingPreviewColumn(column, targetColumns[column], anticipation[column], brakeProgress)
 								: randomColumnWindow(column);
-							displayBoard = replaceColumn(displayBoard, column, nextColumn);
+							displayBoard = applyStickyOverlay(replaceColumn(displayBoard, column, nextColumn), stickyKeys, targetBoard);
 							lastSwap = now;
 						}
 
 						if (now >= effectiveStopAt) {
 							settled = true;
 							reelStates = reelStates.map((state, index) => (index === column ? 'landing' : state));
-							displayBoard = replaceColumn(displayBoard, column, targetColumns[column]);
+							displayBoard = applyStickyOverlay(replaceColumn(displayBoard, column, targetColumns[column]), stickyKeys, targetBoard);
 							emitAudioCue('reel.stop', { reel: column + 1, final: column === REELS - 1, quickSpin: quickSpinEnabled, anticipation: anticipation[column], manualStop: manualStopActive, elapsedMs: Math.round(now - spinStart) });
 							trackedTimeout(() => {
 								reelStates = reelStates.map((state, index) => (index === column ? 'idle' : state));
@@ -868,8 +896,12 @@
 			timingConfig = getTimingConfig(quickSpinEnabled, currentSpinMood);
 			bonusPreviewState = { mode, totalSpins: session.spins.length, cost, totalPaid: session.totalPaid, currentSpin: index + 1, accumulatedWin, stickyWheels };
 
-			if (stickyWheels && index > 0) resolvedWheelStates = { ...stickyResolvedWheels };
+			if (stickyWheels && index > 0) {
+				resolvedWheelStates = { ...stickyResolvedWheels };
+				console.log(`[STICKY] Spin ${index + 1}: Restoring ${Object.keys(stickyResolvedWheels).length} sticky wheels:`, Object.keys(stickyResolvedWheels));
+			}
 
+			console.log(`[STICKY] Spin ${index + 1}: resolvedWheelStates has ${Object.keys(resolvedWheelStates).length} keys before animateReelsTo`);
 			emitAudioCue('bonus.spin.start', { mode, spin: index + 1, totalSpins: session.spins.length, stickyWheels });
 			await animateReelsTo(cloneBoard(bonusSpin.board), reelAnticipation);
 			displayBoard = cloneBoard(bonusSpin.board);
@@ -885,9 +917,15 @@
 			await wait(timingConfig.resolveDelay);
 			if (wheelQueue.length) await resolveWheelQueue(wheelQueue);
 
-			const fullResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
-			resolvedWheelStates = fullResolvedState;
-			if (stickyWheels) stickyResolvedWheels = fullResolvedState;
+			const spinResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
+			console.log(`[STICKY] Spin ${index + 1}: wheelResults keys:`, Object.keys(bonusSpin.wheelResults), 'spinResolved keys:', Object.keys(spinResolvedState));
+			if (stickyWheels) {
+				stickyResolvedWheels = { ...stickyResolvedWheels, ...spinResolvedState };
+				resolvedWheelStates = { ...stickyResolvedWheels };
+				console.log(`[STICKY] Spin ${index + 1}: After merge, stickyResolvedWheels has ${Object.keys(stickyResolvedWheels).length} keys:`, Object.keys(stickyResolvedWheels));
+			} else {
+				resolvedWheelStates = spinResolvedState;
+			}
 			if (bonusSpin.lineResults.length) await playLineShowcase(bonusSpin.lineResults);
 
 			accumulatedWin += bonusSpin.totalWin;
@@ -954,6 +992,98 @@
 
 		emitAudioCue('reels.settled', { lines: math.lineResults.length, wheels: math.wheelQueue.length, totalWin });
 
+		// Natural bonus trigger — scatter reveal then launch free spins
+		if (math.bonusTrigger) {
+			// Pause autoplay for bonus — resume after feature completes
+			const wasAutoplay = autoplayEnabled;
+			autoplayEnabled = false;
+
+			roundState = 'showingLines';
+			activeBonusTrigger = math.bonusTrigger;
+			emitAudioCue('bonus.trigger', { mode: math.bonusTrigger.mode, count: math.bonusTrigger.count, bet: currentBet });
+
+			// Show any regular line wins briefly before transitioning to bonus
+			if (math.lineResults.length) {
+				await wait(timingConfig.resolveDelay);
+				if (math.wheelQueue.length) await resolveWheelQueue(math.wheelQueue);
+				// Brief line preview — use a shorter showcase during bonus reveal
+				for (const result of math.lineResults) {
+					activeLineIndex = math.lineResults.indexOf(result);
+					const t = showcaseTimingFor(result);
+					await wait(Math.round(t.intro * 0.6));
+					await waitMaybeSkip(Math.round(t.hold * 0.6));
+					activeLineIndex = -1;
+					await wait(Math.round(t.gap * 0.4));
+					if (resolveSkipRequested) break;
+				}
+			}
+
+			// Pause to let scatter flares animate
+			const scatterHold = quickSpinEnabled ? 1200 : 2000;
+			await waitMaybeSkip(scatterHold);
+			activeBonusTrigger = null;
+
+			// Launch free spins (cost = 0 since it's a natural trigger)
+			const mode = math.bonusTrigger.mode;
+			const stickyWheels = mode === 'super';
+			const session = simulateBonusRoundSession(mode, currentBet);
+			let stickyResolvedWheels: Record<string, ResolvedWheelState> = {};
+			let accumulatedWin = 0;
+
+			for (let index = 0; index < session.spins.length; index += 1) {
+				clearRoundVisuals({ preserveBonusPreview: true, preserveResolvedWheels: stickyWheels });
+				const bonusSpin = session.spins[index];
+
+				const bonusReelAnticipation = deriveReelAnticipation(cloneBoard(bonusSpin.board), bonusSpin.lineResults);
+				currentSpinMood = bonusSpin.spinMood;
+				timingConfig = getTimingConfig(quickSpinEnabled, currentSpinMood);
+				bonusPreviewState = { mode, totalSpins: session.spins.length, cost: 0, totalPaid: session.totalPaid, currentSpin: index + 1, accumulatedWin, stickyWheels };
+
+				if (stickyWheels && index > 0) {
+					resolvedWheelStates = { ...stickyResolvedWheels };
+				}
+
+				emitAudioCue('bonus.spin.start', { mode, spin: index + 1, totalSpins: session.spins.length, stickyWheels });
+				await animateReelsTo(cloneBoard(bonusSpin.board), bonusReelAnticipation);
+				displayBoard = cloneBoard(bonusSpin.board);
+				lineResults = bonusSpin.lineResults;
+				totalWin = bonusSpin.totalWin;
+
+				const wheelQueue = stickyWheels && stickyResolvedWheels
+					? bonusSpin.wheelQueue.filter((wheel) => !stickyResolvedWheels[wheelPositionKey(wheel)])
+					: bonusSpin.wheelQueue;
+
+				emitAudioCue('reels.settled', { lines: bonusSpin.lineResults.length, wheels: wheelQueue.length, totalWin: bonusSpin.totalWin, mode, spin: index + 1 });
+				roundState = 'showingLines';
+				await wait(timingConfig.resolveDelay);
+				if (wheelQueue.length) await resolveWheelQueue(wheelQueue);
+
+				const spinResolvedState = resolvedStatesFromWheelResults(bonusSpin.wheelResults);
+				if (stickyWheels) {
+					stickyResolvedWheels = { ...stickyResolvedWheels, ...spinResolvedState };
+					resolvedWheelStates = { ...stickyResolvedWheels };
+				} else {
+					resolvedWheelStates = spinResolvedState;
+				}
+				if (bonusSpin.lineResults.length) await playLineShowcase(bonusSpin.lineResults);
+
+				accumulatedWin += bonusSpin.totalWin;
+				bonusPreviewState = { mode, totalSpins: session.spins.length, cost: 0, totalPaid: session.totalPaid, currentSpin: index + 1, accumulatedWin, stickyWheels };
+				emitAudioCue('bonus.spin.complete', { mode, spin: index + 1, spinWin: bonusSpin.totalWin, accumulatedWin });
+			}
+
+			totalWin = session.totalPaid;
+			if (session.totalPaid > 0) await playTotalWinCountUp();
+			settleLiveBalance(session.totalPaid);
+			emitAudioCue('bonus.complete', { mode, totalWin: session.totalPaid, stickyWheels, spins: session.spins.length, natural: true });
+			// Restore autoplay only if it was active when bonus triggered and balance allows
+			if (wasAutoplay && autoplaySpinsRemaining > 0 && liveBalance >= liveBetOptions[liveBetIndex]) {
+				autoplayEnabled = true;
+			}
+			finishRound();
+			return;
+		}
+
 		if (!math.lineResults.length) {
 			emitAudioCue('spin.dead', { lines: 0, wheels: 0, totalWin: 0 });
 			finishRound();
@@ -972,67 +1102,11 @@
 
 <div class="game-shell">
 	<div class="theme-backdrop" aria-hidden="true">
-		<!-- Base stone walls -->
-		<div class="env-walls"></div>
-
-		<!-- Gothic arches -->
-		<div class="env-arch-center"></div>
-		<div class="env-arch-left"></div>
-		<div class="env-arch-right"></div>
-
-		<!-- Dual lighting: warm left, cool right -->
-		<div class="env-light-warm"></div>
-		<div class="env-light-cool"></div>
-		<div class="env-light-center"></div>
-
-		<!-- Stone pillars -->
-		<div class="env-pillar env-pillar-left"></div>
-		<div class="env-pillar env-pillar-right"></div>
-
-		<!-- Torches / candle glow -->
-		<div class="env-torch env-torch-left"></div>
-		<div class="env-torch env-torch-right"></div>
-
-		<!-- Banners -->
-		<div class="env-banner env-banner-left"></div>
-		<div class="env-banner env-banner-right"></div>
-
-		<!-- Stone floor -->
-		<div class="env-floor"></div>
-		<div class="env-floor-light"></div>
-
-		<!-- Atmospheric dust / haze -->
-		<div class="env-haze"></div>
-		<div class="env-dust env-dust-back"></div>
-		<div class="env-dust env-dust-front"></div>
-
-		<!-- Rune carvings on walls -->
-		<div class="env-runes"></div>
-
-		<!-- Vignette -->
+		<img class="env-bg" src={bgThroneRoom} alt="" />
 		<div class="env-vignette"></div>
 	</div>
 
-	<!-- Top Bar -->
-	<header class="top-bar">
-		<div class="top-bar-brand">
-			<h1>Dual Wheel Reels</h1>
-		</div>
-		<div class="top-bar-stats">
-			<div class="stat-pill">
-				<span>Balance</span>
-				<strong>GC {formatValue(liveBalance)}</strong>
-			</div>
-			<div class="stat-pill">
-				<span>Bet</span>
-				<strong>GC {formatValue(liveBetOptions[liveBetIndex])}</strong>
-			</div>
-			<div class="stat-pill">
-				<span>Win</span>
-				<strong class:metric-positive={lastPaidWin > 0}>GC {formatValue(lastPaidWin)}</strong>
-			</div>
-		</div>
-	</header>
+	<!-- Top Bar (hidden — integrated into controls) -->
 
 	<!-- Game Stage -->
 	<main
@@ -1072,25 +1146,40 @@
 			</div>
 		{/if}
 
-		<DualWheelBoard
-			{displayBoard}
-			{reelStates}
-			{roundState}
-			spinMood={currentSpinMood}
-			stickyResolvedWheelMode={Boolean(bonusPreviewState?.stickyWheels)}
-			{reelAnticipation}
-			{activeLine}
-			{activeLineTone}
-			{activeLinePath}
-			{activeLinePoints}
-			{activePayoutPoint}
-			{activeWheelState}
-			{resolvedWheelStates}
-			{wheelResultBursts}
-			{blueWheelOverlayStyle}
-			{redWheelOverlayStyle}
-			wheelMessage={activeWheelMessageState}
-		/>
+		{#if activeBonusTrigger}
+			<div
+				class:bonus-trigger-overlay={true}
+				class:bonus-trigger-overlay-super={activeBonusTrigger.mode === 'super'}
+			>
+				<span class="bonus-trigger-label">{activeBonusTrigger.count} Scatters</span>
+				<strong class="bonus-trigger-title">{activeBonusTrigger.mode === 'super' ? 'Super Bonus!' : 'Bonus!'}</strong>
+				<em class="bonus-trigger-detail">{BONUS_ROUND_CONFIG[activeBonusTrigger.mode].freeSpins} Free Spins{activeBonusTrigger.mode === 'super' ? ' + Sticky Wheels' : ''}</em>
+			</div>
+		{/if}
+
+		<div class="board-and-wheel">
+			<DualWheelBoard
+				{displayBoard}
+				{reelStates}
+				{roundState}
+				spinMood={currentSpinMood}
+				stickyResolvedWheelMode={Boolean(bonusPreviewState?.stickyWheels)}
+				{reelAnticipation}
+				{activeLine}
+				{activeLineTone}
+				{activeLinePath}
+				{activeLinePoints}
+				{activePayoutPoint}
+				{activeWheelState}
+				{resolvedWheelStates}
+				{wheelResultBursts}
+				{blueWheelOverlayStyle}
+				{redWheelOverlayStyle}
+				wheelMessage={activeWheelMessageState}
+				{activeBonusTrigger}
+			/>
+
+		</div>
 
 		{#if showTotalWin}
 			<div
@@ -1109,7 +1198,7 @@
 				<span>{totalWinSubline}</span>
 				{#if bonusPreviewState}
 					<small class="total-win-bonus-meta">
-						{bonusPreviewState.totalSpins} spins · {bonusPreviewState.stickyWheels ? 'sticky wheels' : 'respin wheels'} · cost {formatMultiplier(bonusPreviewState.cost / liveBetOptions[liveBetIndex])}
+						{bonusPreviewState.totalSpins} spins · {bonusPreviewState.stickyWheels ? 'sticky wheels' : 'respin wheels'} · {bonusPreviewState.cost > 0 ? `cost ${formatMultiplier(bonusPreviewState.cost / liveBetOptions[liveBetIndex])}` : 'natural trigger'}
 					</small>
 				{/if}
 				{#if !resolveSkipRequested}
@@ -1119,26 +1208,12 @@
 		{/if}
 	</main>
 
-	<!-- Controls -->
+	<!-- Controls — Gold-trimmed bar -->
 	<footer class="game-controls">
 		<div class="controls-left">
-			<div class="bet-stepper">
-				<button class="ctrl-button" on:click={() => updateLiveBet(-1)} disabled={roundState !== 'idle' || liveBetIndex === 0}>-</button>
-				<div class="bet-display">
-					<span>Bet</span>
-					<strong>GC {formatValue(liveBetOptions[liveBetIndex])}</strong>
-				</div>
-				<button class="ctrl-button" on:click={() => updateLiveBet(1)} disabled={roundState !== 'idle' || liveBetIndex === liveBetOptions.length - 1}>+</button>
-			</div>
-			<div class="bonus-buy-row">
-				<button class="bonus-buy-button bonus-buy-button-regular" on:click={() => void handleBonusBuy('regular')} disabled={!canBuyRegular}>
-					<span>Regular</span>
-					<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.regular)}</strong>
-				</button>
-				<button class="bonus-buy-button bonus-buy-button-super" on:click={() => void handleBonusBuy('super')} disabled={!canBuySuper}>
-					<span>Super</span>
-					<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.super)}</strong>
-				</button>
+			<div class="hud-stat">
+				<span class="hud-label">BALANCE</span>
+				<strong class="hud-value">{formatValue(liveBalance)}</strong>
 			</div>
 		</div>
 
@@ -1158,27 +1233,47 @@
 					SPIN
 				{/if}
 			</button>
-			<p class="status-text">{statusLabel}</p>
 		</div>
 
 		<div class="controls-right">
-			<div class="toggle-row">
-				<button class:toggle-button={true} class:is-active={quickSpinEnabled} on:click={toggleQuickSpin} disabled={roundState !== 'idle' || autoplayEnabled}>
-					Quick
-				</button>
-				<button class:toggle-button={true} class:is-active={autoplayEnabled} on:click={toggleAutoplay} disabled={!canSpin && !autoplayEnabled}>
-					{autoplayEnabled ? 'Stop' : 'Auto'}
-				</button>
+			<div class="hud-cluster">
+				<div class="bet-stepper">
+					<span class="hud-label">BET SIZE</span>
+					<div class="bet-stepper-row">
+						<strong class="hud-value">{formatValue(liveBetOptions[liveBetIndex])}</strong>
+						<button class="stepper-btn" on:click={() => updateLiveBet(-1)} disabled={roundState !== 'idle' || liveBetIndex === 0}>−</button>
+						<button class="stepper-btn" on:click={() => updateLiveBet(1)} disabled={roundState !== 'idle' || liveBetIndex === liveBetOptions.length - 1}>+</button>
+					</div>
+				</div>
+				<div class="hud-toggles">
+					<span class="hud-label">QUICK SPIN</span>
+					<button class:toggle-pill={true} class:is-active={quickSpinEnabled} on:click={toggleQuickSpin} disabled={roundState !== 'idle' || autoplayEnabled}>
+						<span class="toggle-pip"></span>
+					</button>
+				</div>
+				<div class="hud-toggles">
+					<span class="hud-label">AUTO SPIN</span>
+					<button class="auto-btn" on:click={toggleAutoplay} disabled={!canSpin && !autoplayEnabled}>
+						{autoplayEnabled ? `STOP` : `AUTO ${autoplayPreset}`}
+					</button>
+				</div>
 			</div>
-			{#if !autoplayEnabled}
-				<select class="autoplay-select" bind:value={autoplayPreset} disabled={autoplayEnabled || !canSpin}>
-					{#each autoplayPresets as preset}
-						<option value={preset}>{preset} spins</option>
-					{/each}
-				</select>
-			{:else}
-				<p class="autoplay-label">{autoplayQueueLabel}</p>
-			{/if}
+			<div class="hud-stat hud-stat-win">
+				<strong class="hud-value" class:metric-positive={lastPaidWin > 0}>{formatValue(lastPaidWin)}</strong>
+				<span class="hud-label">WIN</span>
+			</div>
+		</div>
+
+		<!-- Hidden but accessible bonus buy + info -->
+		<div class="controls-extras">
+			<button class="bonus-buy-button bonus-buy-button-regular" on:click={() => void handleBonusBuy('regular')} disabled={!canBuyRegular}>
+				<span>Regular</span>
+				<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.regular)}</strong>
+			</button>
+			<button class="bonus-buy-button bonus-buy-button-super" on:click={() => void handleBonusBuy('super')} disabled={!canBuySuper}>
+				<span>Super</span>
+				<strong>{formatMultiplier(PREVIEW_BONUS_BUY_MULTIPLIERS.super)}</strong>
+			</button>
 			<button class="info-button" on:click={() => showInfoPanel = !showInfoPanel} aria-label="Game info">
 				i
 			</button>
@@ -1279,14 +1374,14 @@
 <style>
 	:global(body) {
 		margin: 0;
-		background: #08111a;
+		background: #040608;
 	}
 
 	.game-shell {
 		position: relative;
 		overflow: hidden;
 		display: grid;
-		grid-template-rows: auto 1fr auto;
+		grid-template-rows: 1fr auto;
 		min-height: 100vh;
 		color: #eff7ff;
 		background: transparent;
@@ -1302,332 +1397,25 @@
 		z-index: 0;
 	}
 
-	.theme-backdrop > div { position: absolute; }
-
-	/* Stone walls — dark base with subtle texture */
-	.env-walls {
+	.env-bg {
+		position: absolute;
 		inset: 0;
-		background:
-			/* stone block pattern */
-			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='80' viewBox='0 0 120 80'%3E%3Crect width='120' height='80' fill='%23141218'/%3E%3Cpath d='M0 0h60v40H0zM60 0h60v40H60zM30 40h60v40H30zM90 40h30v40H90zM0 40h30v40H0z' fill='none' stroke='rgba(80,70,65,0.12)' stroke-width='1'/%3E%3C/svg%3E"),
-			linear-gradient(180deg,
-				#0e0c14 0%,
-				#121018 8%,
-				#16131c 20%,
-				#181520 40%,
-				#16131c 60%,
-				#141118 75%,
-				#100e14 90%,
-				#0c0a10 100%
-			);
-		background-size: 120px 80px, 100% 100%;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		object-position: center 35%;
 	}
 
-	/* Center gothic arch — behind the board */
-	.env-arch-center {
-		top: 0; left: 50%; width: min(850px, 76vw); height: 85%;
-		transform: translateX(-50%);
-		border-radius: 45% 45% 0 0 / 22% 22% 0 0;
-		background:
-			radial-gradient(circle at 50% 15%, rgba(100, 80, 50, 0.08) 0%, transparent 30%),
-			linear-gradient(180deg,
-				rgba(35, 28, 40, 0.6) 0%,
-				rgba(25, 20, 30, 0.4) 15%,
-				rgba(18, 15, 22, 0.2) 35%,
-				transparent 60%
-			);
-		box-shadow:
-			inset 0 0 0 3px rgba(90, 75, 55, 0.1),
-			inset 0 3px 0 rgba(130, 110, 80, 0.06),
-			inset 0 -60px 100px rgba(8, 6, 12, 0.4);
-	}
-
-	/* Side arches — smaller pointed arches on left and right */
-	.env-arch-left {
-		top: 5%; left: 2%; width: 22%; height: 60%;
-		border-radius: 45% 45% 0 0 / 30% 30% 0 0;
-		background: linear-gradient(180deg,
-			rgba(30, 22, 18, 0.5) 0%,
-			rgba(22, 16, 14, 0.3) 30%,
-			transparent 65%
-		);
-		box-shadow: inset 0 0 0 2px rgba(80, 60, 45, 0.08);
-	}
-
-	.env-arch-right {
-		top: 5%; right: 2%; width: 22%; height: 60%;
-		border-radius: 45% 45% 0 0 / 30% 30% 0 0;
-		background: linear-gradient(180deg,
-			rgba(18, 22, 35, 0.5) 0%,
-			rgba(14, 16, 28, 0.3) 30%,
-			transparent 65%
-		);
-		box-shadow: inset 0 0 0 2px rgba(55, 65, 90, 0.08);
-	}
-
-	/* WARM LIGHT — orange/amber torchlight on left half */
-	.env-light-warm {
-		top: 0; left: 0; width: 55%; bottom: 0;
-		background:
-			/* main torch glow */
-			radial-gradient(ellipse 70% 50% at 15% 30%, rgba(255, 140, 40, 0.22) 0%, transparent 60%),
-			/* secondary warm fill */
-			radial-gradient(ellipse 80% 60% at 25% 45%, rgba(200, 100, 20, 0.12) 0%, transparent 55%),
-			/* warm ambient */
-			radial-gradient(ellipse 60% 40% at 10% 60%, rgba(180, 80, 15, 0.08) 0%, transparent 50%),
-			/* upper warm wash */
-			linear-gradient(135deg, rgba(180, 90, 20, 0.1) 0%, transparent 40%);
-	}
-
-	/* COOL LIGHT — blue mystical light on right half */
-	.env-light-cool {
-		top: 0; right: 0; width: 55%; bottom: 0;
-		background:
-			/* main blue glow */
-			radial-gradient(ellipse 70% 50% at 85% 30%, rgba(50, 100, 220, 0.2) 0%, transparent 60%),
-			/* secondary cool fill */
-			radial-gradient(ellipse 80% 60% at 75% 45%, rgba(30, 70, 180, 0.1) 0%, transparent 55%),
-			/* cool ambient */
-			radial-gradient(ellipse 60% 40% at 90% 60%, rgba(25, 60, 160, 0.07) 0%, transparent 50%),
-			/* upper cool wash */
-			linear-gradient(225deg, rgba(30, 70, 180, 0.08) 0%, transparent 40%);
-	}
-
-	/* Center convergence — where warm and cool meet */
-	.env-light-center {
-		inset: 0;
-		background:
-			/* warm/cool blend behind the board */
-			radial-gradient(ellipse 40% 50% at 50% 42%,
-				rgba(120, 80, 50, 0.08) 0%,
-				transparent 60%
-			),
-			/* subtle top light from above */
-			radial-gradient(ellipse 50% 20% at 50% 5%, rgba(80, 70, 55, 0.06) 0%, transparent 50%);
-	}
-
-	/* Stone pillars — dark vertical columns */
-	.env-pillar {
-		top: 0; bottom: 0; width: 5%;
-		background: linear-gradient(180deg,
-			rgba(35, 28, 24, 0.8) 0%,
-			rgba(30, 24, 20, 0.7) 30%,
-			rgba(25, 20, 18, 0.65) 60%,
-			rgba(20, 16, 14, 0.6) 100%
-		);
-	}
-
-	.env-pillar-left {
-		left: 16%;
-		box-shadow:
-			4px 0 20px rgba(200, 120, 40, 0.08),
-			-2px 0 15px rgba(0, 0, 0, 0.3);
-	}
-
-	.env-pillar-right {
-		right: 16%;
-		box-shadow:
-			-4px 0 20px rgba(40, 70, 160, 0.08),
-			2px 0 15px rgba(0, 0, 0, 0.3);
-	}
-
-	/* Torches — bright flame glow */
-	.env-torch {
-		width: 60px; height: 120px;
-		border-radius: 50%;
-		filter: blur(12px);
-	}
-
-	.env-torch-left {
-		top: 22%; left: 12%;
-		background: radial-gradient(ellipse 100% 70% at 50% 40%,
-			rgba(255, 200, 60, 0.6) 0%,
-			rgba(255, 150, 30, 0.35) 25%,
-			rgba(255, 100, 10, 0.15) 50%,
-			transparent 75%
-		);
-		animation: torchFlicker 2s ease-in-out infinite;
-	}
-
-	.env-torch-right {
-		top: 22%; right: 12%;
-		background: radial-gradient(ellipse 100% 70% at 50% 40%,
-			rgba(100, 160, 255, 0.4) 0%,
-			rgba(60, 120, 240, 0.22) 25%,
-			rgba(30, 80, 200, 0.08) 50%,
-			transparent 75%
-		);
-		animation: torchFlicker 2s ease-in-out infinite 1s;
-	}
-
-	/* Banners — red/warm left, blue right */
-	.env-banner {
-		width: 28px; height: 180px;
-	}
-
-	.env-banner-left {
-		top: 8%; left: 10%;
-		background: linear-gradient(180deg,
-			rgba(160, 30, 20, 0.5) 0%,
-			rgba(140, 25, 18, 0.4) 20%,
-			rgba(120, 20, 15, 0.35) 60%,
-			rgba(100, 18, 12, 0.2) 85%,
-			transparent 100%
-		);
-		border-radius: 2px 2px 4px 4px;
-		transform: rotate(2deg);
-	}
-
-	.env-banner-right {
-		top: 8%; right: 10%;
-		background: linear-gradient(180deg,
-			rgba(30, 50, 140, 0.45) 0%,
-			rgba(25, 40, 120, 0.35) 20%,
-			rgba(20, 35, 100, 0.3) 60%,
-			rgba(15, 28, 80, 0.18) 85%,
-			transparent 100%
-		);
-		border-radius: 2px 2px 4px 4px;
-		transform: rotate(-2deg);
-	}
-
-	/* Stone floor — perspective ground with warm/cool reflection */
-	.env-floor {
-		left: 0; right: 0; bottom: 0; height: 30%;
-		background:
-			/* stone tile pattern */
-			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' fill='%230e0c10'/%3E%3Cpath d='M0 0h50v50H0zM50 50h50v50H50z' fill='none' stroke='rgba(70,60,55,0.1)' stroke-width='1'/%3E%3C/svg%3E"),
-			linear-gradient(180deg,
-				rgba(20, 16, 14, 0.5) 0%,
-				rgba(14, 12, 10, 0.85) 30%,
-				rgba(10, 8, 8, 0.95) 60%,
-				#080708 100%
-			);
-		background-size: 100px 100px, 100% 100%;
-		transform: perspective(800px) rotateX(25deg);
-		transform-origin: top center;
-	}
-
-	/* Floor light reflections — warm left, cool right */
-	.env-floor-light {
-		left: 0; right: 0; bottom: 0; height: 25%;
-		background:
-			radial-gradient(ellipse 40% 50% at 25% 30%, rgba(200, 120, 40, 0.1) 0%, transparent 55%),
-			radial-gradient(ellipse 40% 50% at 75% 30%, rgba(40, 80, 180, 0.08) 0%, transparent 55%);
-	}
-
-	/* Atmospheric dust / haze */
-	.env-haze {
-		inset: 0;
-		background:
-			radial-gradient(ellipse 70% 20% at 50% 40%, rgba(40, 30, 35, 0.1) 0%, transparent 55%),
-			radial-gradient(ellipse 40% 15% at 20% 35%, rgba(80, 50, 25, 0.06) 0%, transparent 50%),
-			radial-gradient(ellipse 40% 15% at 80% 35%, rgba(25, 40, 80, 0.05) 0%, transparent 48%);
-		animation: hazeDrift 18s ease-in-out infinite;
-	}
-
-	/* Floating dust particles */
-	.env-dust-back {
-		inset: 0;
-		background: transparent;
-		box-shadow:
-			/* warm side particles */
-			10vw 30vh 0 1.2px rgba(255, 180, 80, 0.4),
-			18vw 55vh 0 0.8px rgba(255, 160, 60, 0.35),
-			25vw 42vh 0 1px rgba(255, 200, 100, 0.3),
-			12vw 70vh 0 1.4px rgba(255, 170, 70, 0.38),
-			35vw 25vh 0 0.9px rgba(255, 190, 90, 0.32),
-			/* cool side particles */
-			80vw 35vh 0 1px rgba(120, 160, 255, 0.35),
-			88vw 58vh 0 0.8px rgba(100, 140, 240, 0.3),
-			72vw 45vh 0 1.2px rgba(130, 170, 255, 0.33),
-			90vw 68vh 0 1px rgba(110, 150, 250, 0.28),
-			65vw 28vh 0 0.9px rgba(120, 165, 255, 0.3),
-			/* neutral center */
-			48vw 52vh 0 0.8px rgba(180, 170, 160, 0.25),
-			55vw 38vh 0 1px rgba(170, 160, 150, 0.22);
-		animation: dustDriftBack 25s linear infinite;
-	}
-
-	.env-dust-front {
-		inset: 0;
-		background: transparent;
-		box-shadow:
-			15vw 45vh 0 2px rgba(255, 190, 80, 0.5),
-			22vw 65vh 0 1.5px rgba(255, 170, 60, 0.45),
-			82vw 40vh 0 1.8px rgba(110, 155, 255, 0.45),
-			75vw 62vh 0 1.5px rgba(100, 145, 250, 0.4),
-			50vw 48vh 0 1.2px rgba(200, 180, 160, 0.3);
-		animation: dustDriftFront 20s linear infinite;
-		filter: blur(0.5px);
-	}
-
-	/* Rune carvings on walls */
-	.env-runes {
-		inset: 0;
-		background:
-			url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='320' viewBox='0 0 320 320'%3E%3Cg fill='none' stroke-width='1.5' stroke-linecap='round'%3E%3Cg stroke='rgba(200,150,80,0.08)'%3E%3Cpath d='M30 60 L50 35 L70 60 L50 85Z'/%3E%3Cpath d='M25 160 L55 160 L40 190 L70 190'/%3E%3Cpath d='M30 260 L60 230 L60 270'/%3E%3C/g%3E%3Cg stroke='rgba(80,120,200,0.07)'%3E%3Cpath d='M250 60 L270 35 L290 60 L270 85Z'/%3E%3Cpath d='M250 160 L280 160 L265 190 L295 190'/%3E%3Cpath d='M260 260 L290 230 L290 270'/%3E%3C/g%3E%3Cg stroke='rgba(140,130,120,0.06)'%3E%3Cpath d='M140 80 L160 55 L180 80 L160 105Z'/%3E%3Cpath d='M145 240 L175 210 L175 250'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-		background-size: 320px 320px;
-		mix-blend-mode: screen;
-		opacity: 0.2;
-	}
-
-	/* Heavy vignette */
 	.env-vignette {
+		position: absolute;
 		inset: 0;
-		background: radial-gradient(ellipse 56% 50% at 50% 40%, transparent 28%, rgba(4, 3, 6, 0.94) 100%);
+		background:
+			radial-gradient(ellipse 65% 50% at 50% 38%, transparent 25%, rgba(2, 2, 4, 0.82) 100%),
+			linear-gradient(180deg, rgba(0,0,0,0.15) 0%, transparent 12%, transparent 75%, rgba(0,0,0,0.6) 100%);
 		pointer-events: none;
 	}
 
-	/* ── Top Bar ──────────────────────────────────────────── */
-
-	.top-bar {
-		display: flex;
-		align-items: center;
-		justify-content: space-between;
-		gap: 16px;
-		padding: 14px 24px;
-		background: linear-gradient(180deg, rgba(10, 20, 30, 0.92), rgba(8, 16, 24, 0.88));
-		border-bottom: 1px solid rgba(145, 181, 214, 0.12);
-		backdrop-filter: blur(10px);
-		z-index: 2;
-	}
-
-	.top-bar-brand h1 {
-		margin: 0;
-		font-size: clamp(1.2rem, 2.2vw, 1.8rem);
-		letter-spacing: -0.04em;
-		line-height: 1;
-	}
-
-	.top-bar-stats {
-		display: flex;
-		gap: 10px;
-	}
-
-	.stat-pill {
-		padding: 8px 14px;
-		border-radius: 14px;
-		background: rgba(6, 14, 22, 0.84);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-	}
-
-	.stat-pill span {
-		display: block;
-		font-size: 0.66rem;
-		font-weight: 800;
-		letter-spacing: 0.14em;
-		text-transform: uppercase;
-		color: rgba(175, 208, 238, 0.68);
-	}
-
-	.stat-pill strong {
-		display: block;
-		margin-top: 2px;
-		font-size: 0.95rem;
-		font-weight: 800;
-		letter-spacing: -0.02em;
-	}
+	/* ── Top Bar (hidden) ─────────────────────────────────── */
 
 	.metric-positive { color: #86f2c5; }
 
@@ -1637,12 +1425,23 @@
 		position: relative;
 		display: grid;
 		place-content: center;
-		padding: 24px;
+		align-self: center;
+		padding: 16px 24px 0;
 		z-index: 1;
+		transform: scale(0.82);
+		transform-origin: center center;
 	}
 
 	.stage-tone-medium { box-shadow: inset 0 0 80px rgba(93, 185, 255, 0.06); }
 	.stage-tone-big { box-shadow: inset 0 0 80px rgba(255, 108, 82, 0.08); }
+
+	/* ── Board + Wheel wrapper ────────────────────────────── */
+
+	.board-and-wheel {
+		position: relative;
+		display: grid;
+		justify-items: center;
+	}
 
 	.stage-feature-mode::after {
 		content: '';
@@ -1658,6 +1457,85 @@
 	.stage-feature-super::after {
 		background: radial-gradient(circle at top, rgba(255, 110, 74, 0.16), transparent 34%), radial-gradient(circle at bottom left, rgba(87, 164, 255, 0.12), transparent 30%);
 		animation-duration: 3.3s;
+	}
+
+	/* ── Bonus Trigger Overlay ──────────────────────────────── */
+
+	.bonus-trigger-overlay {
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -56%);
+		z-index: 15;
+		display: grid;
+		justify-items: center;
+		gap: 6px;
+		padding: 22px 36px 26px;
+		border-radius: 20px;
+		background:
+			linear-gradient(180deg, rgba(8, 22, 40, 0.97), rgba(5, 14, 26, 0.98)),
+			radial-gradient(circle at 50% 0%, rgba(98, 178, 255, 0.18), transparent 56%);
+		border: 1px solid rgba(115, 185, 255, 0.28);
+		box-shadow:
+			0 24px 56px rgba(0, 0, 0, 0.64),
+			0 0 0 1px rgba(255, 255, 255, 0.06),
+			0 0 80px rgba(80, 160, 255, 0.12);
+		pointer-events: none;
+		animation: bonusTriggerEnter 480ms cubic-bezier(0.16, 1, 0.3, 1);
+	}
+
+	.bonus-trigger-overlay-super {
+		background:
+			linear-gradient(180deg, rgba(18, 10, 4, 0.97), rgba(10, 6, 2, 0.98)),
+			radial-gradient(circle at 50% 0%, rgba(255, 165, 60, 0.22), transparent 56%);
+		border-color: rgba(255, 185, 80, 0.3);
+		box-shadow:
+			0 24px 56px rgba(0, 0, 0, 0.64),
+			0 0 0 1px rgba(255, 255, 255, 0.06),
+			0 0 80px rgba(255, 150, 40, 0.16);
+	}
+
+	.bonus-trigger-label {
+		font-size: 0.72rem;
+		font-weight: 800;
+		letter-spacing: 0.22em;
+		text-transform: uppercase;
+		color: rgba(175, 218, 255, 0.72);
+	}
+
+	.bonus-trigger-overlay-super .bonus-trigger-label {
+		color: rgba(255, 210, 130, 0.72);
+	}
+
+	.bonus-trigger-title {
+		font-size: 2.2rem;
+		font-weight: 900;
+		letter-spacing: -0.04em;
+		color: #e8f5ff;
+		line-height: 1;
+		text-shadow: 0 0 32px rgba(120, 196, 255, 0.46), 0 4px 12px rgba(0, 0, 0, 0.5);
+	}
+
+	.bonus-trigger-overlay-super .bonus-trigger-title {
+		color: #fff5d8;
+		text-shadow: 0 0 32px rgba(255, 185, 60, 0.5), 0 4px 12px rgba(0, 0, 0, 0.5);
+	}
+
+	.bonus-trigger-detail {
+		font-size: 0.9rem;
+		font-style: normal;
+		font-weight: 700;
+		color: rgba(180, 220, 255, 0.7);
+		margin-top: 2px;
+	}
+
+	.bonus-trigger-overlay-super .bonus-trigger-detail {
+		color: rgba(255, 210, 140, 0.7);
+	}
+
+	@keyframes bonusTriggerEnter {
+		from { opacity: 0; transform: translate(-50%, -56%) scale(0.88); }
+		to { opacity: 1; transform: translate(-50%, -56%) scale(1); }
 	}
 
 	/* ── Feature Banner ───────────────────────────────────── */
@@ -1718,193 +1596,298 @@
 	.total-win-bonus-meta { margin: 2px 0 0; font-size: 0.78rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: rgba(245, 214, 170, 0.8); }
 	.total-win-hint { margin: 2px 0 0; padding: 6px 10px; border-radius: 999px; background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.12); color: rgba(225, 239, 255, 0.78); font-style: normal; font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
 
-	/* ── Controls Footer ──────────────────────────────────── */
+	/* ── Controls Footer — Gold-trimmed HUD bar ──────────── */
 
 	.game-controls {
+		position: relative;
 		display: grid;
-		grid-template-columns: minmax(200px, 0.9fr) auto minmax(200px, 0.9fr);
-		gap: 16px;
+		grid-template-columns: auto 1fr auto;
+		grid-template-rows: auto auto;
+		gap: 0 12px;
 		align-items: center;
-		padding: 16px 24px;
-		background: linear-gradient(180deg, rgba(8, 16, 24, 0.94), rgba(6, 12, 18, 0.98));
-		border-top: 1px solid rgba(145, 181, 214, 0.12);
-		backdrop-filter: blur(10px);
+		padding: 16px 24px 12px;
 		z-index: 2;
+		/* Dark teal interior with gold trim border — matching reference HUD bar */
+		background:
+			/* Subtle inner sheen */
+			radial-gradient(ellipse 60% 100% at 50% 0%, rgba(80, 140, 180, 0.08), transparent 50%),
+			/* Dark teal body */
+			linear-gradient(180deg,
+				rgb(28, 48, 62) 0%,
+				rgb(20, 38, 52) 40%,
+				rgb(16, 32, 46) 60%,
+				rgb(12, 26, 38) 100%
+			);
+		border: 3px solid rgb(160, 130, 55);
+		border-radius: 12px;
+		box-shadow:
+			/* Inner gold bevel */
+			inset 0 1px 0 rgba(220, 190, 110, 0.3),
+			inset 0 -1px 0 rgba(0, 0, 0, 0.4),
+			/* Outer dark frame */
+			0 0 0 2px rgb(50, 38, 15),
+			0 0 0 5px rgb(120, 95, 40),
+			0 0 0 7px rgb(45, 32, 12),
+			/* Drop shadow */
+			0 8px 24px rgba(0, 0, 0, 0.5);
+		margin: 0 40px 8px;
 	}
 
 	.controls-center {
 		display: grid;
 		justify-items: center;
-		gap: 8px;
 	}
 
 	.spin-button {
-		width: 96px;
-		height: 96px;
+		width: 72px;
+		height: 72px;
 		border-radius: 50%;
-		background: linear-gradient(180deg, #7acfff, #3699f6 54%, #1a73d8 100%);
+		background:
+			radial-gradient(circle at 50% 30%, rgba(200, 230, 255, 0.95), transparent 50%),
+			linear-gradient(180deg, #9adaff, #4aabf8 40%, #2580d8 70%, #1a60b0 100%);
 		color: #04121d;
 		font-weight: 900;
-		font-size: 1.1rem;
+		font-size: 1rem;
 		letter-spacing: 0.08em;
-		border: 2px solid rgba(255, 255, 255, 0.2);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 8px 24px rgba(15, 84, 151, 0.4), 0 0 0 4px rgba(54, 153, 246, 0.15);
+		border: 4px solid rgb(160, 130, 55);
+		box-shadow:
+			inset 0 2px 4px rgba(255, 255, 255, 0.5),
+			inset 0 -3px 6px rgba(0, 40, 100, 0.4),
+			/* Gold ring */
+			0 0 0 4px rgb(50, 38, 15),
+			0 0 0 7px rgb(140, 110, 45),
+			0 0 0 9px rgb(50, 38, 15),
+			0 6px 20px rgba(0, 0, 0, 0.6);
 		cursor: pointer;
 		transition: transform 160ms ease, box-shadow 160ms ease;
 	}
 
-	.spin-button:hover:enabled { transform: scale(1.05); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 12px 32px rgba(15, 84, 151, 0.5), 0 0 0 6px rgba(54, 153, 246, 0.2); }
-	.spin-button:active:enabled { transform: scale(0.95); }
+	.spin-button:hover:enabled { transform: scale(1.06); }
+	.spin-button:active:enabled { transform: scale(0.94); }
 	.spin-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
 	.spin-button-stop {
-		background: linear-gradient(180deg, #ffc484, #f98f54 56%, #e55a2f 100%);
+		background:
+			radial-gradient(circle at 50% 35%, rgba(255, 210, 170, 0.8), transparent 55%),
+			linear-gradient(180deg, #ffc484, #f98f54 56%, #e55a2f 100%);
 		color: #1b0903;
-		border-color: rgba(255, 190, 148, 0.4);
-		box-shadow: inset 0 1px 0 rgba(255, 231, 213, 0.42), 0 8px 24px rgba(155, 73, 27, 0.4), 0 0 0 4px rgba(249, 143, 84, 0.15);
 	}
 
 	.spin-button-skip {
-		background: linear-gradient(180deg, #c2e8ff, #6fc4ff 56%, #37a2f5 100%);
+		background:
+			radial-gradient(circle at 50% 35%, rgba(200, 235, 255, 0.9), transparent 55%),
+			linear-gradient(180deg, #c2e8ff, #6fc4ff 56%, #37a2f5 100%);
 		color: #04121d;
-		border-color: rgba(192, 231, 255, 0.44);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44), 0 8px 24px rgba(47, 122, 184, 0.3), 0 0 0 4px rgba(111, 196, 255, 0.15);
 	}
 
-	.status-text {
-		margin: 0;
-		font-size: 0.76rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
+	/* ── HUD Stats & Labels ──────────────────────────────── */
+
+	.hud-label {
+		display: block;
+		font-size: 0.6rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
 		text-transform: uppercase;
-		color: rgba(175, 208, 238, 0.68);
+		color: rgba(196, 180, 140, 0.7);
 	}
+
+	.hud-value {
+		display: block;
+		font-size: 1.05rem;
+		font-weight: 800;
+		letter-spacing: -0.02em;
+		color: #f0e8d8;
+	}
+
+	.hud-stat {
+		padding: 6px 16px;
+		background:
+			linear-gradient(180deg,
+				rgba(8, 18, 28, 0.9) 0%,
+				rgba(12, 24, 36, 0.85) 100%
+			);
+		border: 1px solid rgba(140, 115, 50, 0.35);
+		border-radius: 6px;
+		box-shadow:
+			inset 0 2px 6px rgba(0, 0, 0, 0.4),
+			0 1px 0 rgba(200, 170, 90, 0.1);
+		min-width: 100px;
+	}
+
+	.hud-stat-win {
+		text-align: right;
+		min-width: 100px;
+	}
+
+	.hud-stat-win .metric-positive { color: #86f2c5; }
 
 	/* ── Left / Right Controls ────────────────────────────── */
 
-	.controls-left, .controls-right {
-		display: grid;
-		gap: 10px;
+	.controls-left {
+		display: flex;
+		align-items: center;
+	}
+
+	.controls-right {
+		display: flex;
+		align-items: center;
+		gap: 14px;
+		justify-content: flex-end;
+	}
+
+	.hud-cluster {
+		display: flex;
+		align-items: center;
+		gap: 16px;
 	}
 
 	.bet-stepper {
 		display: grid;
-		grid-template-columns: 44px minmax(0, 1fr) 44px;
-		gap: 8px;
+		gap: 2px;
+	}
+
+	.bet-stepper-row {
+		display: flex;
 		align-items: center;
+		gap: 6px;
 	}
 
-	.bet-display {
-		padding: 8px 12px;
-		border-radius: 12px;
-		background: rgba(6, 14, 22, 0.84);
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		text-align: center;
-	}
-
-	.bet-display span { display: block; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(171, 205, 236, 0.68); }
-	.bet-display strong { display: block; margin-top: 2px; font-size: 0.95rem; font-weight: 800; }
-
-	.ctrl-button {
-		padding: 10px;
-		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		background: rgba(16, 28, 41, 0.92);
-		color: #edf7ff;
+	.stepper-btn {
+		width: 28px;
+		height: 28px;
+		border-radius: 50%;
+		border: 2px solid rgb(140, 115, 50);
+		background:
+			radial-gradient(circle at 50% 35%, rgba(60, 50, 30, 0.9), rgba(30, 24, 12, 0.95));
+		color: rgba(220, 200, 160, 0.9);
 		font-weight: 800;
-		font-size: 1.1rem;
+		font-size: 0.9rem;
 		cursor: pointer;
-		transition: transform 160ms ease;
+		display: grid;
+		place-content: center;
+		box-shadow:
+			inset 0 1px 2px rgba(200, 170, 90, 0.15),
+			0 2px 4px rgba(0, 0, 0, 0.3);
+		transition: transform 120ms ease, border-color 120ms ease;
 	}
 
-	.ctrl-button:hover:enabled { transform: translateY(-1px); }
-	.ctrl-button:active:enabled { transform: translateY(1px); }
-	.ctrl-button:disabled { opacity: 0.45; cursor: not-allowed; }
+	.stepper-btn:hover:enabled { transform: scale(1.1); border-color: rgba(196, 166, 98, 0.7); }
+	.stepper-btn:disabled { opacity: 0.35; cursor: not-allowed; }
 
-	.bonus-buy-row {
+	.hud-toggles {
 		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
+		gap: 4px;
+		justify-items: center;
+	}
+
+	.toggle-pill {
+		position: relative;
+		width: 38px;
+		height: 20px;
+		border-radius: 10px;
+		border: 2px solid rgb(120, 95, 40);
+		background:
+			linear-gradient(180deg, rgba(10, 20, 30, 0.9), rgba(16, 28, 40, 0.85));
+		cursor: pointer;
+		box-shadow:
+			inset 0 2px 4px rgba(0, 0, 0, 0.4),
+			0 1px 0 rgba(200, 170, 90, 0.1);
+		transition: background 200ms ease, border-color 200ms ease;
+	}
+
+	.toggle-pill .toggle-pip {
+		position: absolute;
+		top: 2px;
+		left: 2px;
+		width: 14px;
+		height: 14px;
+		border-radius: 50%;
+		background: rgba(160, 140, 100, 0.6);
+		transition: transform 200ms ease, background 200ms ease;
+	}
+
+	.toggle-pill.is-active {
+		background: rgba(50, 100, 60, 0.8);
+		border-color: rgba(120, 200, 140, 0.5);
+	}
+
+	.toggle-pill.is-active .toggle-pip {
+		transform: translateX(18px);
+		background: rgba(120, 220, 150, 0.9);
+	}
+
+	.toggle-pill:disabled { opacity: 0.35; cursor: not-allowed; }
+
+	.auto-btn {
+		padding: 5px 12px;
+		border-radius: 8px;
+		border: 2px solid rgb(120, 95, 40);
+		background:
+			linear-gradient(180deg, rgba(10, 20, 30, 0.9), rgba(16, 28, 40, 0.85));
+		color: rgba(220, 200, 160, 0.9);
+		font-weight: 700;
+		font-size: 0.72rem;
+		letter-spacing: 0.06em;
+		cursor: pointer;
+		box-shadow:
+			inset 0 2px 4px rgba(0, 0, 0, 0.3),
+			0 1px 0 rgba(200, 170, 90, 0.1);
+		transition: border-color 160ms ease;
+	}
+
+	.auto-btn:hover:enabled { border-color: rgba(196, 166, 98, 0.6); }
+	.auto-btn:disabled { opacity: 0.35; cursor: not-allowed; }
+
+	/* ── Bonus Buy (extras row) ───────────────────────────── */
+
+	.controls-extras {
+		grid-column: 1 / -1;
+		display: flex;
 		gap: 8px;
+		justify-content: center;
+		padding-top: 6px;
 	}
 
 	.bonus-buy-button {
-		padding: 8px 10px;
-		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		padding: 5px 12px;
+		border-radius: 8px;
+		border: 2px solid rgb(120, 95, 40);
 		cursor: pointer;
-		text-align: left;
-		transition: transform 160ms ease;
+		text-align: center;
+		transition: transform 120ms ease, border-color 120ms ease;
+		background:
+			linear-gradient(180deg, rgba(10, 20, 30, 0.9), rgba(16, 28, 40, 0.85));
+		box-shadow:
+			inset 0 2px 4px rgba(0, 0, 0, 0.3),
+			0 1px 0 rgba(200, 170, 90, 0.1);
 	}
 
-	.bonus-buy-button:hover:enabled { transform: translateY(-1px); }
-	.bonus-buy-button:disabled { opacity: 0.45; cursor: not-allowed; }
+	.bonus-buy-button:hover:enabled { transform: translateY(-1px); border-color: rgba(196, 166, 98, 0.6); }
+	.bonus-buy-button:disabled { opacity: 0.35; cursor: not-allowed; }
 
-	.bonus-buy-button span { display: block; font-size: 0.62rem; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: rgba(214, 234, 251, 0.68); }
-	.bonus-buy-button strong { display: block; font-size: 0.9rem; font-weight: 900; letter-spacing: -0.02em; }
+	.bonus-buy-button span { display: block; font-size: 0.58rem; font-weight: 800; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(196, 180, 140, 0.6); }
+	.bonus-buy-button strong { display: block; font-size: 0.82rem; font-weight: 900; }
 
-	.bonus-buy-button-regular { background: linear-gradient(180deg, rgba(12, 31, 53, 0.96), rgba(8, 21, 36, 0.94)), radial-gradient(circle at top left, rgba(88, 176, 255, 0.16), transparent 44%); border-color: rgba(98, 179, 245, 0.24); }
+	.bonus-buy-button-regular { border-color: rgba(98, 160, 220, 0.3); }
 	.bonus-buy-button-regular strong { color: #aee4ff; }
-	.bonus-buy-button-super { background: linear-gradient(180deg, rgba(37, 17, 14, 0.98), rgba(20, 11, 13, 0.94)), radial-gradient(circle at top left, rgba(255, 130, 92, 0.16), transparent 42%); border-color: rgba(255, 151, 105, 0.24); }
+	.bonus-buy-button-super { border-color: rgba(220, 140, 80, 0.3); }
 	.bonus-buy-button-super strong { color: #ffca8b; }
 
-	.toggle-row {
-		display: grid;
-		grid-template-columns: repeat(2, minmax(0, 1fr));
-		gap: 8px;
-	}
-
-	.toggle-button {
-		padding: 10px 12px;
-		border-radius: 12px;
-		border: 1px solid rgba(255, 255, 255, 0.08);
-		background: rgba(16, 28, 41, 0.92);
-		color: #edf7ff;
-		font-weight: 700;
-		font-size: 0.82rem;
-		cursor: pointer;
-		transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-	}
-
-	.toggle-button:hover:enabled { transform: translateY(-1px); }
-	.toggle-button:disabled { opacity: 0.45; cursor: not-allowed; }
-	.toggle-button.is-active { border-color: rgba(102, 198, 255, 0.44); background: rgba(26, 70, 116, 0.72); }
-
-	.autoplay-select {
-		width: 100%;
-		padding: 8px 10px;
-		border-radius: 10px;
-		border: 1px solid rgba(150, 188, 222, 0.18);
-		background: rgba(5, 13, 21, 0.92);
-		color: #eef6ff;
-		font: inherit;
-		font-size: 0.82rem;
-	}
-
-	.autoplay-label {
-		margin: 0;
-		padding: 8px 10px;
-		text-align: center;
-		font-size: 0.8rem;
-		font-weight: 700;
-		color: rgba(172, 230, 255, 0.9);
-	}
-
 	.info-button {
-		width: 36px;
-		height: 36px;
+		width: 30px;
+		height: 30px;
 		border-radius: 50%;
-		border: 1px solid rgba(145, 181, 214, 0.24);
-		background: rgba(16, 28, 41, 0.92);
-		color: rgba(205, 229, 255, 0.82);
+		border: 1px solid rgba(196, 166, 98, 0.3);
+		background: rgba(30, 26, 16, 0.85);
+		color: rgba(220, 200, 160, 0.8);
 		font-weight: 900;
-		font-size: 0.9rem;
+		font-size: 0.8rem;
 		font-style: italic;
 		cursor: pointer;
-		transition: transform 160ms ease;
-		justify-self: end;
+		transition: transform 120ms ease;
 	}
 
-	.info-button:hover { transform: scale(1.1); border-color: rgba(145, 181, 214, 0.4); }
+	.info-button:hover { transform: scale(1.1); border-color: rgba(196, 166, 98, 0.6); }
 
 	/* ── Info Overlay ─────────────────────────────────────── */
 
@@ -2034,37 +2017,6 @@
 		color: rgba(202, 223, 243, 0.76);
 	}
 
-	/* ── Environment Animations ──────────────────────────── */
-
-	@keyframes torchFlicker {
-		0%, 100% { opacity: 0.75; transform: scale(1) translateY(0); }
-		15% { opacity: 1; transform: scale(1.1) translateY(-2px); }
-		30% { opacity: 0.82; transform: scale(0.95) translateY(1px); }
-		50% { opacity: 0.95; transform: scale(1.05) translateY(-1px); }
-		70% { opacity: 0.78; transform: scale(0.97) translateY(0); }
-		85% { opacity: 0.93; transform: scale(1.03) translateY(-1px); }
-	}
-
-	@keyframes hazeDrift {
-		0% { transform: translateX(-1.5%); opacity: 0.85; }
-		50% { transform: translateX(1.5%); opacity: 1; }
-		100% { transform: translateX(-1.5%); opacity: 0.85; }
-	}
-
-	@keyframes dustDriftBack {
-		0% { transform: translate(0, 0); }
-		33% { transform: translate(5px, -8px); }
-		66% { transform: translate(-3px, -16px); }
-		100% { transform: translate(0, -24px); }
-	}
-
-	@keyframes dustDriftFront {
-		0% { transform: translate(0, 0); }
-		33% { transform: translate(-6px, -10px); }
-		66% { transform: translate(4px, -20px); }
-		100% { transform: translate(0, -30px); }
-	}
-
 	/* ── UI Animations ───────────────────────────────────── */
 
 	@keyframes featureBannerEnter {
@@ -2086,23 +2038,23 @@
 
 	@media (max-width: 960px) {
 		.game-controls {
-			grid-template-columns: 1fr;
-			gap: 12px;
+			grid-template-columns: 1fr auto 1fr;
+			padding: 8px 12px;
 		}
 
-		.controls-center { order: -1; }
-
-		.top-bar {
-			flex-direction: column;
-			gap: 10px;
-			text-align: center;
-		}
-
-		.top-bar-stats { justify-content: center; }
+		.hud-cluster { gap: 10px; }
 
 		.feature-banner { grid-template-columns: 1fr; }
 		.feature-banner-metrics { justify-content: start; }
+	}
 
-		.bonus-buy-row { grid-template-columns: 1fr; }
+	@media (max-width: 640px) {
+		.game-controls {
+			grid-template-columns: auto 1fr auto;
+		}
+
+		.hud-cluster { display: none; }
+
+		.controls-extras { flex-wrap: wrap; }
 	}
 </style>

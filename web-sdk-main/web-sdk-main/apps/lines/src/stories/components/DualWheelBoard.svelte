@@ -1,17 +1,7 @@
 <script lang="ts">
 	import BlueSingleWheel from './BlueSingleWheel.svelte';
 	import RedDualWheel from './RedDualWheel.svelte';
-	import boardAoArt from '../assets/board/board_ao.png';
-	import boardBaseArt from '../assets/board/board_base.png';
-	import boardCellRecessArt from '../assets/board/board_cell_recess.png';
-	import boardContactShadowArt from '../assets/board/board_contact_shadow.png';
-	import boardDamageDetailArt from '../assets/board/board_damage_detail.png';
-	import boardMossOverlayArt from '../assets/board/board_moss_overlay.png';
-	import boardRunesArt from '../assets/board/board_runes.png';
-	import boardTrimGoldArt from '../assets/board/board_trim_gold.png';
-	import cellBaseArt from '../assets/cells/cell_base.png';
-	import cellInnerShadowArt from '../assets/cells/cell_inner_shadow.png';
-	import cellWinGlowArt from '../assets/cells/cell_win_glow.png';
+
 	import {
 		BOARD_H,
 		BOARD_PADDING,
@@ -28,7 +18,6 @@
 	import type {
 		ActiveWheelState,
 		BonusTrigger,
-		LockedCellState,
 		LineTone,
 		LineResult,
 		Point,
@@ -53,7 +42,6 @@
 	export let activePayoutPoint: Point | null = null;
 	export let activeWheelState: ActiveWheelState | null = null;
 	export let resolvedWheelStates: Record<string, ResolvedWheelState> = {};
-	export let lockedCells: LockedCellState[][] = [];
 	export let wheelResultBursts: WheelResultBurst[] = [];
 	export let reelAnticipation: ReelAnticipation[] = Array(REELS).fill('none');
 	export let blueWheelOverlayStyle = '';
@@ -63,7 +51,6 @@
 	export let activeLineTone: LineTone | null = null;
 	export let stickyResolvedWheelMode = false;
 	export let activeBonusTrigger: BonusTrigger | null = null;
-	export let bonusTriggerRevealActive = false;
 
 	$: presentedSpinMood =
 		roundState === 'spinning'
@@ -116,26 +103,6 @@
 		return resolvedWheelStates[cellKey(row, column)] ?? null;
 	}
 
-	function lockedCellAtPosition(row: number, column: number): LockedCellState | null {
-		return lockedCells[row]?.[column] ?? null;
-	}
-
-	function resolvedWheelFromLockedCell(
-		cell: LockedCellState | null,
-		row: number,
-		column: number,
-	): ResolvedWheelState | null {
-		if (!cell?.locked || !cell.type || cell.multiplierValue === null) return null;
-		return {
-			row,
-			column,
-			type: cell.type,
-			total: cell.multiplierValue,
-			outer: cell.outer ?? undefined,
-			inner: cell.inner ?? undefined,
-		};
-	}
-
 	function wheelOverlayPosition(wheel: ActiveWheelState | null): Point {
 		if (!wheel) {
 			return {
@@ -177,37 +144,13 @@
 
 	function resolvedWheelPrimaryLabel(wheel: ResolvedWheelState | null): string {
 		if (!wheel) return '';
-		return formatMultiplier(wheel.total);
-	}
-
-	function resolvedWheelBadgeLabel(wheel: ResolvedWheelState | null): string {
-		if (!wheel) return '';
-		return formatMultiplier(wheel.total);
+		return `+${formatMultiplier(wheel.total)}`;
 	}
 
 	function resolvedWheelDetailLabel(wheel: ResolvedWheelState | null): string {
 		if (!wheel) return '';
 		return wheel.type === 'red'
 			? `${formatMultiplier(wheel.outer ?? 0)} x ${formatMultiplier(wheel.inner ?? 0)}`
-			: '';
-	}
-
-	function resolvedWheelBadgeDetailLabel(wheel: ResolvedWheelState | null): string {
-		if (!wheel) return '';
-		return wheel.type === 'red'
-			? `${formatMultiplier(wheel.outer ?? 0)} x ${formatMultiplier(wheel.inner ?? 0)}`
-			: '';
-	}
-
-	function lockedCellPrimaryLabel(cell: LockedCellState | null): string {
-		if (!cell?.locked || cell.multiplierValue === null) return '';
-		return formatMultiplier(cell.multiplierValue);
-	}
-
-	function lockedCellDetailLabel(cell: LockedCellState | null): string {
-		if (!cell?.locked || !cell.type) return '';
-		return cell.type === 'red'
-			? `${formatMultiplier(cell.outer ?? 0)} x ${formatMultiplier(cell.inner ?? 0)}`
 			: '';
 	}
 
@@ -228,8 +171,16 @@
 		return `${line.wheels.length} wheel bonuses`;
 	}
 
+	function bonusTriggeredAtPosition(row: number, column: number): boolean {
+		return Boolean(
+			activeBonusTrigger?.positions.some(
+				(position) => position.row === row && position.column === column,
+			),
+		);
+	}
+
 	function cellMuted(row: number, column: number): boolean {
-		if (bonusTriggerRevealActive) {
+		if (activeBonusTrigger) {
 			return !bonusTriggeredAtPosition(row, column);
 		}
 
@@ -250,14 +201,6 @@
 		if (!resolvedWheel) return null;
 		return resolvedWheel.type === 'blue' ? 'blueWheel' : 'redWheel';
 	}
-
-	function bonusTriggeredAtPosition(row: number, column: number): boolean {
-		return Boolean(
-			activeBonusTrigger?.positions.some(
-				(position) => position.row === row && position.column === column,
-			),
-		);
-	}
 </script>
 
 <div
@@ -267,27 +210,21 @@
 	class:board-frame-big={presentedSpinMood === 'big'}
 	style={`--board-width:${BOARD_W}px; --board-height:${BOARD_H}px;`}
 >
-	<div class="board-contact-shadow" aria-hidden="true">
-		<img class="board-contact-shadow-art" src={boardContactShadowArt} alt="" />
+	<!-- Velvet backdrop (red left / blue right) -->
+	<div class="frame-velvet" aria-hidden="true">
+		<div class="frame-velvet-red"></div>
+		<div class="frame-velvet-blue"></div>
 	</div>
-	<div class="board-backlight" aria-hidden="true"></div>
-	<div class="board-frame-art board-frame-art-base" aria-hidden="true">
-		<img src={boardBaseArt} alt="" />
+	<!-- Crown clasp at top center -->
+	<div class="frame-crown" aria-hidden="true"></div>
+	<!-- Scroll bar caps -->
+	<div class="frame-scroll frame-scroll-top" aria-hidden="true">
+		<div class="frame-scroll-cap frame-scroll-cap-left"></div>
+		<div class="frame-scroll-cap frame-scroll-cap-right"></div>
 	</div>
-	<div class="board-frame-art board-frame-art-ao" aria-hidden="true">
-		<img src={boardAoArt} alt="" />
-	</div>
-	<div class="board-frame-art board-frame-art-trim" aria-hidden="true">
-		<img src={boardTrimGoldArt} alt="" />
-	</div>
-	<div class="board-frame-art board-frame-art-runes" aria-hidden="true">
-		<img src={boardRunesArt} alt="" />
-	</div>
-	<div class="board-frame-art board-frame-art-damage" aria-hidden="true">
-		<img src={boardDamageDetailArt} alt="" />
-	</div>
-	<div class="board-frame-art board-frame-art-moss" aria-hidden="true">
-		<img src={boardMossOverlayArt} alt="" />
+	<div class="frame-scroll frame-scroll-bottom" aria-hidden="true">
+		<div class="frame-scroll-cap frame-scroll-cap-left"></div>
+		<div class="frame-scroll-cap frame-scroll-cap-right"></div>
 	</div>
 	<div
 		class:board={true}
@@ -302,28 +239,20 @@
 			activeLineTone === 'big'}
 		style={`grid-template-columns: repeat(${REELS}, ${SIZE}px); grid-template-rows: repeat(${ROWS}, ${SIZE}px); gap: ${GAP}px;`}
 	>
-		<div class="board-recess-art" aria-hidden="true">
-			<img src={boardCellRecessArt} alt="" />
-		</div>
 		{#each displayBoard as row, rowIndex}
 			{#each row as symbol, columnIndex}
-				{@const lockedCell = lockedCellAtPosition(rowIndex, columnIndex)}
-				{@const lockedResolvedWheel = stickyResolvedWheelMode
-					? resolvedWheelFromLockedCell(lockedCell, rowIndex, columnIndex)
-					: null}
 				{@const resolvedWheel = resolvedWheelAtPosition(rowIndex, columnIndex)}
-				{@const visibleResolvedWheel = lockedResolvedWheel ?? resolvedWheel}
-				{@const stickyCellLocked = Boolean(lockedResolvedWheel)}
-				{@const displaySymbol = stickyCellLocked && lockedCell?.symbol ? lockedCell.symbol : symbol}
+				{@const stickyWheelVisual = stickyResolvedWheelMode && Boolean(resolvedWheel)}
+				{@const stickyCellLocked = stickyResolvedWheelMode && Boolean(resolvedWheel)}
+				{@const displaySymbol = stickyWheelVisual
+					? (stickyWheelSymbol(resolvedWheel) ?? symbol)
+					: symbol}
 				{@const meta = symbolMeta[displaySymbol]}
 				{@const highlighted = lineIncludesPosition(activeLine, rowIndex, columnIndex)}
 				{@const wheelData = lineWheelAtPosition(activeLine, rowIndex, columnIndex)}
 				{@const activeWheel = activeWheelAtPosition(rowIndex, columnIndex)}
-				{@const resolvedWheelDetail = resolvedWheelDetailLabel(visibleResolvedWheel)}
-				{@const resolvedWheelBadgeDetail = resolvedWheelBadgeDetailLabel(visibleResolvedWheel)}
+				{@const resolvedWheelDetail = resolvedWheelDetailLabel(resolvedWheel)}
 				{@const resolvedWheelBurst = wheelBurstAtPosition(rowIndex, columnIndex)}
-				{@const stickyPrimaryLabel = lockedCellPrimaryLabel(lockedCell)}
-				{@const stickyDetailLabel = lockedCellDetailLabel(lockedCell)}
 				<div
 					class:cell={true}
 					class:cell-muted={cellMuted(rowIndex, columnIndex) && !stickyCellLocked}
@@ -331,23 +260,17 @@
 					class:cell-highlighted-quiet={highlighted && activeLineTone === 'small'}
 					class:cell-highlighted-big={highlighted && activeLineTone === 'big'}
 					class:cell-anticipation-premium={roundState === 'spinning' &&
-						!stickyCellLocked &&
 						reelStates[columnIndex] !== 'idle' &&
 						reelAnticipation[columnIndex] === 'premium'}
 					class:cell-anticipation-wheel={roundState === 'spinning' &&
-						!stickyCellLocked &&
 						reelStates[columnIndex] !== 'idle' &&
 						reelAnticipation[columnIndex] === 'wheel'}
 					class:cell-wheel={meta.kind === 'wheel'}
+					class:cell-bonus={meta.kind === 'bonus'}
+					class:cell-bonus-triggered={bonusTriggeredAtPosition(rowIndex, columnIndex)}
 					class:cell-wheel-active={Boolean(activeWheel)}
 					class:cell-wheel-queued={Boolean(wheelData) && !activeWheel}
 					class:cell-sticky-locked={stickyCellLocked && !activeWheel}
-					class:cell-sticky-new={stickyCellLocked &&
-						Boolean(resolvedWheelBurst?.sticky) &&
-						!activeWheel}
-					class:cell-bonus-triggered={bonusTriggeredAtPosition(rowIndex, columnIndex)}
-					class:cell-bonus-held={bonusTriggerRevealActive &&
-						bonusTriggeredAtPosition(rowIndex, columnIndex)}
 					class:cell-spinning={reelStates[columnIndex] === 'spinning' && !stickyCellLocked}
 					class:cell-braking={reelStates[columnIndex] === 'braking' && !stickyCellLocked}
 					class:cell-landing={reelStates[columnIndex] === 'landing' && !stickyCellLocked}
@@ -355,21 +278,12 @@
 					data-symbol={displaySymbol}
 					style={`--cell-background:${meta.background}; --cell-glow:${meta.glow}; --cell-frame:${meta.frame};`}
 				>
-					<div class="cell-art-layer cell-art-base" aria-hidden="true">
-						<img src={cellBaseArt} alt="" />
-					</div>
-					<div class="cell-art-layer cell-art-shadow" aria-hidden="true">
-						<img src={cellInnerShadowArt} alt="" />
-					</div>
-					<div class="cell-art-layer cell-art-win" aria-hidden="true">
-						<img src={cellWinGlowArt} alt="" />
-					</div>
 					{#if meta.kind === 'wheel'}
 						<div class="symbol-shell symbol-shell-wheel">
 							<div
 								class={`wheel-tile-shell wheel-tile-shell-${displaySymbol === 'blueWheel' ? 'blue' : 'red'}`}
 								class:wheel-tile-shell-hidden={Boolean(activeWheel)}
-								class:wheel-tile-shell-sticky={stickyCellLocked}
+								class:wheel-tile-shell-sticky={Boolean(stickyWheelVisual)}
 							>
 								<img
 									class="wheel-tile-art"
@@ -377,30 +291,17 @@
 									alt={meta.label}
 								/>
 							</div>
-							{#if visibleResolvedWheel && !stickyCellLocked && !activeWheel && !resolvedWheelBurst}
+							{#if resolvedWheel && !activeWheel && (!resolvedWheelBurst || stickyCellLocked)}
 								<div
 									class:wheel-result-chip={true}
-									class:wheel-result-chip-blue={visibleResolvedWheel.type === 'blue'}
-									class:wheel-result-chip-red={visibleResolvedWheel.type === 'red'}
+									class:wheel-result-chip-blue={resolvedWheel.type === 'blue'}
+									class:wheel-result-chip-red={resolvedWheel.type === 'red'}
 									class:wheel-result-chip-highlighted={Boolean(highlighted && wheelData)}
+									class:wheel-result-chip-sticky={stickyCellLocked}
 								>
-									<strong>{resolvedWheelBadgeLabel(visibleResolvedWheel)}</strong>
-									{#if resolvedWheelBadgeDetail}
-										<em>{resolvedWheelBadgeDetail}</em>
-									{/if}
-								</div>
-							{/if}
-							{#if stickyCellLocked && stickyPrimaryLabel}
-								<div
-									class:wheel-result-chip={true}
-									class:wheel-result-chip-sticky={true}
-									class:wheel-result-chip-sticky-new={Boolean(resolvedWheelBurst?.sticky)}
-									class:wheel-result-chip-blue={lockedCell?.type === 'blue'}
-									class:wheel-result-chip-red={lockedCell?.type === 'red'}
-								>
-									<strong>{stickyPrimaryLabel}</strong>
-									{#if stickyDetailLabel}
-										<em>{stickyDetailLabel}</em>
+									<strong>{resolvedWheelPrimaryLabel(resolvedWheel)}</strong>
+									{#if resolvedWheelDetail}
+										<em>{resolvedWheelDetail}</em>
 									{/if}
 								</div>
 							{/if}
@@ -410,10 +311,7 @@
 							<div
 								class:symbol-tile-shell={true}
 								class:symbol-tile-shell-bonus={true}
-								class:symbol-tile-shell-bonus-triggered={bonusTriggeredAtPosition(
-									rowIndex,
-									columnIndex,
-								)}
+								class:symbol-tile-shell-bonus-triggered={bonusTriggeredAtPosition(rowIndex, columnIndex)}
 							>
 								<img class="scatter-symbol" src={bonusSymbolAssets.scatter} alt={meta.label} />
 								{#if bonusTriggeredAtPosition(rowIndex, columnIndex) && activeBonusTrigger}
@@ -429,7 +327,7 @@
 							<div class={`symbol-tile-shell symbol-tile-shell-${meta.tier}`}>
 								<img
 									class="symbol-art symbol-art-sheet"
-									src={symbolArtAssets[displaySymbol as RegularSymbolId]}
+									src={symbolArtAssets[symbol as RegularSymbolId]}
 									alt={meta.label}
 								/>
 							</div>
@@ -486,7 +384,6 @@
 			{@const burstPoint = wheelBurstPosition(wheelResultBurst)}
 			<div
 				class:wheel-result-burst={true}
-				class:wheel-result-burst-sticky={Boolean(wheelResultBurst.sticky)}
 				class:wheel-result-burst-blue={wheelResultBurst.type === 'blue'}
 				class:wheel-result-burst-red={wheelResultBurst.type === 'red'}
 				style={`left:${burstPoint.x}px; top:${burstPoint.y}px;`}
@@ -497,6 +394,8 @@
 						{formatMultiplier(wheelResultBurst.outer ?? 0)} x
 						{formatMultiplier(wheelResultBurst.inner ?? 0)}
 					</em>
+				{:else}
+					<em>wheel value</em>
 				{/if}
 			</div>
 		{/each}
@@ -549,8 +448,7 @@
 				class:payout-chip-big={activeLineTone === 'big'}
 				style={`left:${activePayoutPoint.x}px; top:${activePayoutPoint.y - 40}px;`}
 			>
-				<span>Line {activeLine.lineNumber}</span><strong>{formatCurrency(activeLine.payout)}</strong
-				>
+				<span>Line {activeLine.lineNumber}</span><strong>{formatCurrency(activeLine.payout)}</strong>
 				{#if activeLine.wheels.length}
 					<em class="payout-chip-wheel-note">{wheelLineSummary(activeLine)}</em>
 				{/if}
@@ -584,181 +482,216 @@
 		--red-wheel-land-duration: 340ms;
 		--red-wheel-land-delay: 70ms;
 		--board-aura: rgba(68, 121, 255, 0.22);
-		--board-border: rgba(186, 213, 242, 0.18);
-		--frame-cool: rgba(104, 176, 255, 0.18);
-		--frame-warm: rgba(255, 172, 116, 0.14);
+		--board-border: rgba(160, 140, 90, 0.5);
+		--frame-cool: rgba(80, 140, 220, 0.12);
+		--frame-warm: rgba(220, 150, 80, 0.14);
 		position: relative;
 		display: grid;
 		place-items: center;
-		width: calc(var(--board-width) + 40px);
-		min-width: calc(var(--board-width) + 40px);
+		width: calc(var(--board-width) + 80px);
+		min-width: calc(var(--board-width) + 80px);
 		max-width: 100%;
-		margin: 22px auto 0;
-		padding: 20px;
-		border-radius: 28px;
+		margin: 0 auto;
+		padding: 38px 38px 34px;
+		border-radius: 6px;
 		overflow: visible;
+		/* Ornate gold frame — multi-layer border with embossed look */
 		background:
-			radial-gradient(circle at 14% 18%, var(--frame-cool), transparent 22%),
-			radial-gradient(circle at 84% 22%, var(--frame-warm), transparent 24%),
-			linear-gradient(
-				180deg,
-				rgba(61, 55, 50, 0.98),
-				rgba(31, 33, 38, 0.99) 34%,
-				rgba(18, 24, 33, 0.98)
-			),
-			linear-gradient(
-				90deg,
-				rgba(110, 84, 42, 0.14),
-				transparent 22%,
-				transparent 78%,
-				rgba(72, 46, 28, 0.16)
-			),
+			/* Etched pattern overlay */
 			repeating-linear-gradient(
 				90deg,
-				rgba(255, 255, 255, 0.018) 0,
-				rgba(255, 255, 255, 0.018) 2px,
-				transparent 2px,
-				transparent 72px
+				transparent,
+				transparent 18px,
+				rgba(180, 150, 80, 0.04) 18px,
+				rgba(180, 150, 80, 0.04) 19px
+			),
+			repeating-linear-gradient(
+				0deg,
+				transparent,
+				transparent 18px,
+				rgba(180, 150, 80, 0.04) 18px,
+				rgba(180, 150, 80, 0.04) 19px
+			),
+			/* Gold frame body — warm metallic gradient */
+			linear-gradient(180deg,
+				rgb(195, 160, 80) 0%,
+				rgb(165, 130, 55) 6%,
+				rgb(140, 105, 40) 15%,
+				rgb(110, 80, 30) 30%,
+				rgb(95, 70, 28) 50%,
+				rgb(110, 80, 30) 70%,
+				rgb(140, 105, 40) 85%,
+				rgb(165, 130, 55) 94%,
+				rgb(195, 160, 80) 100%
 			);
-		border: 1px solid var(--board-border);
+		border: 3px solid rgb(85, 65, 25);
 		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.05),
-			inset 0 18px 24px rgba(255, 255, 255, 0.04),
-			inset 0 -28px 52px rgba(3, 8, 14, 0.5),
-			0 32px 64px rgba(2, 10, 20, 0.46);
-		transform: perspective(1800px) rotateX(3.2deg);
-		transform-origin: center top;
-		transform-style: preserve-3d;
+			/* Inner gold bevel */
+			inset 0 2px 0 rgba(240, 210, 130, 0.5),
+			inset 0 -2px 0 rgba(60, 40, 10, 0.6),
+			inset 2px 0 0 rgba(200, 170, 90, 0.3),
+			inset -2px 0 0 rgba(200, 170, 90, 0.3),
+			/* Inner shadow on board well */
+			inset 0 8px 20px rgba(0, 0, 0, 0.4),
+			/* Outer dark border */
+			0 0 0 2px rgb(45, 32, 12),
+			0 0 0 5px rgb(130, 100, 40),
+			0 0 0 7px rgb(55, 40, 15),
+			/* Drop shadow */
+			0 20px 60px rgba(0, 0, 0, 0.7),
+			0 8px 24px rgba(0, 0, 0, 0.5);
 	}
 
-	.board-frame-art {
+	/* ── Velvet backdrop (red left, blue right) ── */
+	.frame-velvet {
 		position: absolute;
-		inset: 0;
-		pointer-events: none;
-		user-select: none;
+		inset: 28px;
+		display: flex;
+		border-radius: 3px;
+		overflow: hidden;
+		z-index: -1;
 	}
 
-	.board-frame-art img {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: fill;
-	}
-
-	.board-frame-art-base {
-		z-index: 0;
-		opacity: 0.94;
-	}
-
-	.board-frame-art-ao {
-		z-index: 1;
-		opacity: 0.72;
-		mix-blend-mode: multiply;
-	}
-
-	.board-frame-art-trim {
-		z-index: 2;
-		opacity: 0.86;
-	}
-
-	.board-frame-art-runes {
-		z-index: 1;
-		opacity: 0.42;
-		mix-blend-mode: screen;
-	}
-
-	.board-frame-art-damage {
-		z-index: 2;
-		opacity: 0.44;
-		mix-blend-mode: multiply;
-	}
-
-	.board-frame-art-moss {
-		z-index: 2;
-		opacity: 0.36;
-	}
-
-	.board-frame::before {
-		content: '';
-		position: absolute;
-		inset: 10px;
-		border-radius: 22px;
-		border: 1px solid rgba(222, 235, 248, 0.08);
+	.frame-velvet-red {
+		flex: 1;
 		background:
-			radial-gradient(circle at 50% 0%, rgba(255, 229, 169, 0.08), transparent 24%),
-			linear-gradient(180deg, rgba(255, 255, 255, 0.04), transparent 14%),
-			linear-gradient(0deg, rgba(0, 0, 0, 0.34), transparent 24%),
-			linear-gradient(
-				90deg,
-				rgba(0, 0, 0, 0.18),
-				transparent 12%,
-				transparent 88%,
-				rgba(0, 0, 0, 0.18)
+			/* Velvet texture — subtle noise-like gradients */
+			radial-gradient(ellipse 80% 60% at 30% 25%, rgba(180, 70, 40, 0.4), transparent 50%),
+			radial-gradient(ellipse 60% 80% at 70% 70%, rgba(120, 30, 15, 0.3), transparent 50%),
+			linear-gradient(160deg,
+				rgb(140, 50, 30) 0%,
+				rgb(110, 35, 20) 30%,
+				rgb(85, 25, 15) 60%,
+				rgb(65, 18, 10) 100%
 			);
-		pointer-events: none;
 	}
 
-	.board-frame::after {
-		content: '';
-		position: absolute;
-		inset: 6px;
-		border-radius: 24px;
+	.frame-velvet-blue {
+		flex: 1;
 		background:
-			radial-gradient(circle at 24px 24px, rgba(228, 241, 255, 0.3) 0 5px, transparent 6px),
-			radial-gradient(
-				circle at calc(100% - 24px) 24px,
-				rgba(255, 196, 136, 0.26) 0 5px,
-				transparent 6px
-			),
-			radial-gradient(
-				circle at 24px calc(100% - 24px),
-				rgba(255, 196, 136, 0.2) 0 5px,
-				transparent 6px
-			),
-			radial-gradient(
-				circle at calc(100% - 24px) calc(100% - 24px),
-				rgba(228, 241, 255, 0.24) 0 5px,
-				transparent 6px
+			radial-gradient(ellipse 80% 60% at 70% 25%, rgba(60, 100, 180, 0.35), transparent 50%),
+			radial-gradient(ellipse 60% 80% at 30% 70%, rgba(25, 50, 120, 0.3), transparent 50%),
+			linear-gradient(200deg,
+				rgb(50, 75, 140) 0%,
+				rgb(35, 55, 110) 30%,
+				rgb(22, 38, 80) 60%,
+				rgb(14, 24, 55) 100%
 			);
-		opacity: 0.82;
-		pointer-events: none;
 	}
 
-	.board-contact-shadow {
+	/* ── Crown clasp at top center ── */
+	.frame-crown {
 		position: absolute;
+		top: -22px;
 		left: 50%;
-		bottom: -54px;
-		width: calc(var(--board-width) + 190px);
-		height: 124px;
-		transform: translateX(-50%) rotateX(74deg);
-		transform-origin: center top;
-		opacity: 0.82;
-		pointer-events: none;
-		z-index: -2;
-	}
-
-	.board-contact-shadow-art {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: contain;
-		opacity: 0.92;
-	}
-
-	.board-backlight {
-		position: absolute;
-		left: 26px;
-		right: 26px;
-		top: 18px;
-		height: 42%;
-		border-radius: 28px 28px 40px 40px;
+		transform: translateX(-50%);
+		width: 64px;
+		height: 44px;
+		z-index: 5;
 		background:
-			radial-gradient(circle at 50% 0%, rgba(111, 179, 255, 0.14), transparent 42%),
-			radial-gradient(circle at 50% 12%, rgba(255, 208, 145, 0.08), transparent 46%);
-		filter: blur(18px);
-		opacity: 0.72;
-		pointer-events: none;
-		z-index: 0;
+			/* Crown arch shape */
+			radial-gradient(ellipse 80% 50% at 50% 60%,
+				rgb(200, 170, 90) 0%,
+				rgb(160, 130, 55) 40%,
+				rgb(120, 90, 35) 70%,
+				transparent 72%
+			);
+		border-radius: 50% 50% 10% 10%;
+		border: 2px solid rgb(85, 65, 25);
+		box-shadow:
+			inset 0 2px 4px rgba(240, 210, 130, 0.4),
+			inset 0 -2px 4px rgba(40, 25, 8, 0.5),
+			0 4px 12px rgba(0, 0, 0, 0.5);
+	}
+
+	.frame-crown::before {
+		content: '';
+		position: absolute;
+		top: 50%;
+		left: 50%;
+		transform: translate(-50%, -50%);
+		width: 18px;
+		height: 18px;
+		border-radius: 50%;
+		background:
+			radial-gradient(circle at 40% 35%,
+				rgb(240, 220, 150),
+				rgb(180, 150, 70) 50%,
+				rgb(120, 90, 35) 100%
+			);
+		border: 2px solid rgb(100, 75, 30);
+		box-shadow:
+			inset 0 1px 2px rgba(255, 240, 180, 0.5),
+			0 1px 4px rgba(0, 0, 0, 0.4);
+	}
+
+	/* ── Scroll bar caps (top & bottom) ── */
+	.frame-scroll {
+		position: absolute;
+		left: -16px;
+		right: -16px;
+		height: 24px;
+		z-index: 4;
+		border-radius: 12px;
+		background:
+			linear-gradient(180deg,
+				rgb(185, 155, 80) 0%,
+				rgb(150, 120, 55) 20%,
+				rgb(100, 75, 30) 50%,
+				rgb(130, 100, 45) 80%,
+				rgb(170, 140, 70) 100%
+			);
+		border: 2px solid rgb(80, 60, 22);
+		box-shadow:
+			inset 0 2px 4px rgba(230, 200, 120, 0.35),
+			inset 0 -2px 4px rgba(30, 20, 5, 0.4),
+			0 4px 14px rgba(0, 0, 0, 0.5);
+	}
+
+	.frame-scroll-top { top: -14px; }
+	.frame-scroll-bottom { bottom: -14px; }
+
+	/* Pointed end caps on scroll bars */
+	.frame-scroll-cap {
+		position: absolute;
+		top: 50%;
+		transform: translateY(-50%);
+		width: 20px;
+		height: 20px;
+		border-radius: 50%;
+		background:
+			radial-gradient(circle at 40% 35%,
+				rgb(210, 180, 100),
+				rgb(150, 120, 50) 50%,
+				rgb(100, 75, 30) 100%
+			);
+		border: 2px solid rgb(75, 55, 20);
+		box-shadow:
+			inset 0 1px 2px rgba(240, 210, 130, 0.4),
+			0 2px 6px rgba(0, 0, 0, 0.4);
+	}
+
+	.frame-scroll-cap-left { left: -10px; }
+	.frame-scroll-cap-right { right: -10px; }
+
+	/* Etched pattern on scroll bars */
+	.frame-scroll::before {
+		content: '';
+		position: absolute;
+		inset: 4px 30px;
+		border-radius: 8px;
+		background:
+			repeating-linear-gradient(
+				90deg,
+				transparent,
+				transparent 12px,
+				rgba(80, 60, 20, 0.25) 12px,
+				rgba(80, 60, 20, 0.25) 13px,
+				transparent 13px,
+				transparent 16px,
+				rgba(200, 170, 90, 0.12) 16px,
+				rgba(200, 170, 90, 0.12) 17px
+			);
 	}
 
 	.board-frame-dead {
@@ -778,11 +711,7 @@
 		--red-wheel-land-duration: 220ms;
 		--red-wheel-land-delay: 30ms;
 		--board-aura: rgba(68, 121, 255, 0.14);
-		--board-border: rgba(156, 190, 219, 0.12);
-	}
-
-	.board-frame-dead .board-contact-shadow {
-		opacity: 0.68;
+		--board-border: rgba(140, 120, 70, 0.35);
 	}
 
 	.board-frame-feature {
@@ -804,12 +733,7 @@
 		--board-scan-opacity: 0.58;
 		--board-scan-duration: 720ms;
 		--board-aura: rgba(74, 144, 255, 0.28);
-		--board-border: rgba(134, 199, 245, 0.2);
-	}
-
-	.board-frame-feature .board-backlight {
-		opacity: 0.9;
-		filter: blur(20px);
+		--board-border: rgba(120, 160, 220, 0.35);
 	}
 
 	.board-frame-big {
@@ -831,16 +755,7 @@
 		--board-scan-opacity: 0.66;
 		--board-scan-duration: 820ms;
 		--board-aura: rgba(255, 98, 74, 0.18);
-		--board-border: rgba(255, 153, 126, 0.22);
-	}
-
-	.board-frame-big .board-backlight {
-		opacity: 1;
-		filter: blur(22px);
-	}
-
-	.board-frame-big .board-contact-shadow {
-		opacity: 0.9;
+		--board-border: rgba(220, 140, 80, 0.4);
 	}
 
 	.board {
@@ -848,52 +763,17 @@
 		display: grid;
 		width: fit-content;
 		margin: 0 auto;
-		padding: 12px;
+		padding: 6px;
 		isolation: isolate;
-		border-radius: 24px;
-		background:
-			radial-gradient(circle at 50% 8%, rgba(110, 169, 241, 0.12), transparent 24%),
-			radial-gradient(circle at 50% 100%, rgba(183, 105, 72, 0.12), transparent 24%),
-			linear-gradient(180deg, rgba(8, 13, 18, 0.98), rgba(11, 16, 22, 0.98)),
-			repeating-linear-gradient(
-				90deg,
-				rgba(255, 255, 255, 0.022) 0,
-				rgba(255, 255, 255, 0.022) 1px,
-				transparent 1px,
-				transparent 58px
-			),
-			repeating-linear-gradient(
-				180deg,
-				rgba(255, 255, 255, 0.012) 0,
-				rgba(255, 255, 255, 0.012) 1px,
-				transparent 1px,
-				transparent 58px
-			);
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.08),
-			inset 0 24px 28px rgba(255, 255, 255, 0.025),
-			inset 0 -42px 46px rgba(0, 0, 0, 0.44),
-			0 24px 50px rgba(0, 0, 0, 0.5);
+		border-radius: 4px;
+		background: rgba(4, 4, 6, 0.9);
 		overflow: visible;
-		transform: translateZ(12px);
-		z-index: 3;
-	}
-
-	.board-recess-art {
-		position: absolute;
-		inset: 12px;
-		pointer-events: none;
-		user-select: none;
-		z-index: 0;
-		opacity: 0.56;
-		mix-blend-mode: screen;
-	}
-
-	.board-recess-art img {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: fill;
+		/* Gold inner border around the cell area */
+		box-shadow:
+			inset 0 0 0 3px rgb(140, 110, 45),
+			inset 0 0 0 5px rgb(60, 45, 15),
+			inset 0 4px 12px rgba(0, 0, 0, 0.5),
+			inset 0 -4px 12px rgba(0, 0, 0, 0.4);
 	}
 
 	.board::before {
@@ -950,9 +830,18 @@
 		place-items: center;
 		width: 104px;
 		height: 104px;
-		border-radius: 22px;
-		background: transparent;
-		box-shadow: none;
+		border-radius: 12px;
+		background:
+			radial-gradient(circle at 50% 30%, rgba(20, 22, 30, 0.5), rgba(4, 5, 10, 0.96) 75%);
+		/* Gold divider border — ornamental grid look */
+		border: 3px solid rgb(160, 130, 55);
+		box-shadow:
+			/* Inner recess shadow */
+			inset 0 3px 8px rgba(0, 0, 0, 0.7),
+			inset 0 -1px 3px rgba(0, 0, 0, 0.3),
+			/* Gold bevel on border */
+			0 0 0 1px rgb(80, 60, 22),
+			0 0 0 2px rgba(200, 170, 90, 0.15);
 		overflow: visible;
 		transition:
 			transform 0.22s ease,
@@ -965,55 +854,11 @@
 	.cell::before {
 		content: '';
 		position: absolute;
-		inset: 5px;
-		border-radius: 18px;
-		background:
-			radial-gradient(circle at 22% 24%, rgba(122, 191, 255, 0.08), transparent 28%),
-			radial-gradient(circle at 78% 78%, rgba(255, 201, 138, 0.06), transparent 26%),
-			radial-gradient(circle at 50% 28%, rgba(255, 255, 255, 0.03), transparent 44%),
-			linear-gradient(180deg, rgba(255, 255, 255, 0.014), rgba(0, 0, 0, 0.16));
-		box-shadow:
-			inset 0 0 0 1px rgba(255, 255, 255, 0.035),
-			inset 0 -12px 18px rgba(0, 0, 0, 0.22);
-		opacity: 0.34;
-	}
-
-	.cell-art-layer {
-		position: absolute;
 		inset: 0;
+		border-radius: 6px;
+		background:
+			linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%, rgba(0, 0, 0, 0.12));
 		pointer-events: none;
-		user-select: none;
-	}
-
-	.cell-art-layer img {
-		display: block;
-		width: 100%;
-		height: 100%;
-		object-fit: fill;
-	}
-
-	.cell-art-base {
-		z-index: 0;
-		opacity: 0.7;
-	}
-
-	.cell-art-shadow {
-		z-index: 0;
-		opacity: 0.66;
-		mix-blend-mode: multiply;
-	}
-
-	.cell-art-win {
-		z-index: 0;
-		opacity: 0;
-		mix-blend-mode: screen;
-		transition: opacity 160ms ease;
-	}
-
-	.cell-highlighted .cell-art-win,
-	.cell-highlighted-quiet .cell-art-win,
-	.cell-bonus-triggered .cell-art-win {
-		opacity: 0.72;
 	}
 
 	.cell-spinning {
@@ -1038,20 +883,10 @@
 	.cell-sticky-locked {
 		transform: translateY(0) scale(1);
 		filter: none;
-		opacity: 1;
 		box-shadow:
 			0 0 0 1px rgba(255, 255, 255, 0.05),
 			0 0 20px color-mix(in srgb, var(--cell-glow) 18%, transparent),
 			0 18px 26px rgba(0, 0, 0, 0.24);
-		z-index: 4;
-	}
-
-	.cell-sticky-new {
-		animation: stickyLockCellPulse 920ms cubic-bezier(0.18, 0.88, 0.24, 1) both;
-		box-shadow:
-			0 0 0 2px rgba(255, 226, 144, 0.14),
-			0 0 30px color-mix(in srgb, var(--cell-glow) 42%, transparent),
-			0 24px 34px rgba(0, 0, 0, 0.28);
 	}
 
 	.cell-sticky-locked::before {
@@ -1089,65 +924,6 @@
 			0 0 0 2px rgba(255, 255, 255, 0.1),
 			0 0 34px color-mix(in srgb, var(--cell-glow) 84%, transparent),
 			0 24px 36px rgba(0, 0, 0, 0.34);
-	}
-
-	.cell-bonus-triggered {
-		animation: bonusTriggerPulse 1160ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
-		box-shadow:
-			0 0 0 2px rgba(255, 208, 128, 0.22),
-			0 0 36px color-mix(in srgb, var(--cell-glow) 78%, transparent),
-			0 24px 34px rgba(0, 0, 0, 0.3);
-		z-index: 4;
-	}
-
-	.cell-bonus-held {
-		z-index: 5;
-		transform: translateY(-2px) scale(1.025);
-		box-shadow:
-			0 0 0 2px rgba(255, 219, 154, 0.18),
-			0 0 40px rgba(255, 191, 102, 0.22),
-			0 24px 34px rgba(0, 0, 0, 0.32);
-	}
-
-	.cell-bonus-held .symbol-tile-shell-bonus {
-		animation: scatterTriggerHold 840ms cubic-bezier(0.16, 1, 0.3, 1) both;
-	}
-
-	.cell-bonus-triggered .scatter-symbol {
-		box-shadow:
-			inset 0 0 0 2px rgba(255, 233, 176, 0.34),
-			inset 0 -10px 14px rgba(88, 25, 7, 0.34),
-			0 18px 24px rgba(0, 0, 0, 0.26),
-			0 0 26px rgba(255, 198, 96, 0.24);
-		animation: scatterLift 1160ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
-	}
-
-	.symbol-tile-shell-bonus-triggered {
-		transform: translateY(-2px) scale(1.04);
-		filter: drop-shadow(0 0 24px rgba(255, 194, 112, 0.28))
-			drop-shadow(0 16px 24px rgba(0, 0, 0, 0.3));
-	}
-
-	.symbol-tile-shell-bonus-triggered::before {
-		content: '';
-		position: absolute;
-		inset: -10px;
-		border-radius: 24px;
-		background:
-			radial-gradient(circle at center, rgba(255, 214, 128, 0.28), transparent 56%),
-			conic-gradient(
-				from 0deg,
-				rgba(255, 225, 170, 0.24),
-				rgba(255, 134, 88, 0.12),
-				rgba(255, 223, 166, 0.24),
-				rgba(116, 191, 255, 0.14),
-				rgba(255, 225, 170, 0.24)
-			);
-		filter: blur(6px);
-		opacity: 0.9;
-		animation: scatterTriggerAura 1160ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
-		pointer-events: none;
-		z-index: 0;
 	}
 
 	.cell-anticipation-premium,
@@ -1244,9 +1020,75 @@
 			drop-shadow(0 2px 4px rgba(255, 201, 143, 0.08));
 	}
 
+	/* ── Scatter / Bonus Symbol ── */
 	.symbol-tile-shell-bonus {
-		filter: drop-shadow(0 18px 26px rgba(164, 72, 18, 0.32))
-			drop-shadow(0 4px 12px rgba(255, 190, 92, 0.14));
+		position: relative;
+		width: var(--symbol-size);
+		height: var(--symbol-size);
+		display: grid;
+		place-items: center;
+		border-radius: 14px;
+		overflow: visible;
+		filter: drop-shadow(0 0 14px rgba(255, 183, 78, 0.5)) drop-shadow(0 18px 28px rgba(0, 0, 0, 0.3));
+		transition: filter 240ms ease, transform 240ms ease;
+	}
+
+	.symbol-tile-shell-bonus-triggered {
+		filter: drop-shadow(0 0 22px rgba(255, 195, 80, 0.82)) drop-shadow(0 0 48px rgba(255, 150, 40, 0.4)) drop-shadow(0 18px 28px rgba(0, 0, 0, 0.26));
+		transform: scale(1.06);
+		animation: scatterTriggerPulse 1.4s ease-in-out infinite;
+	}
+
+	.scatter-symbol {
+		width: var(--symbol-size);
+		height: var(--symbol-size);
+		object-fit: contain;
+		position: relative;
+		z-index: 1;
+	}
+
+	.scatter-trigger-flare {
+		position: absolute;
+		bottom: -28px;
+		left: 50%;
+		transform: translateX(-50%);
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 1px;
+		padding: 3px 8px 4px;
+		border-radius: 8px;
+		background: linear-gradient(135deg, rgba(255, 180, 60, 0.95), rgba(220, 130, 20, 0.95));
+		border: 1px solid rgba(255, 220, 120, 0.5);
+		box-shadow: 0 4px 14px rgba(0, 0, 0, 0.4), 0 0 18px rgba(255, 170, 40, 0.3);
+		white-space: nowrap;
+		z-index: 5;
+		animation: scatterFlareEnter 320ms cubic-bezier(0.22, 1, 0.36, 1);
+	}
+
+	.scatter-trigger-flare span {
+		font-size: 0.54rem;
+		font-weight: 800;
+		letter-spacing: 0.12em;
+		text-transform: uppercase;
+		color: rgba(80, 40, 5, 0.82);
+	}
+
+	.scatter-trigger-flare strong {
+		font-size: 1.1rem;
+		font-weight: 900;
+		color: rgba(40, 20, 2, 0.92);
+		line-height: 1;
+	}
+
+	@keyframes scatterTriggerPulse {
+		0%, 100% { filter: drop-shadow(0 0 22px rgba(255, 195, 80, 0.82)) drop-shadow(0 0 48px rgba(255, 150, 40, 0.4)) drop-shadow(0 18px 28px rgba(0, 0, 0, 0.26)); }
+		50% { filter: drop-shadow(0 0 32px rgba(255, 215, 100, 1)) drop-shadow(0 0 64px rgba(255, 170, 50, 0.6)) drop-shadow(0 18px 28px rgba(0, 0, 0, 0.22)); }
+	}
+
+	@keyframes scatterFlareEnter {
+		from { opacity: 0; transform: translateX(-50%) translateY(6px) scale(0.86); }
+		to { opacity: 1; transform: translateX(-50%) translateY(0) scale(1); }
 	}
 
 	.symbol-art {
@@ -1255,9 +1097,8 @@
 		object-fit: contain;
 		position: relative;
 		z-index: 1;
-		filter: drop-shadow(-6px -4px 10px rgba(104, 178, 255, 0.08))
-			drop-shadow(8px 10px 12px rgba(255, 189, 128, 0.05))
-			drop-shadow(0 14px 20px rgba(0, 0, 0, 0.24)) drop-shadow(0 2px 4px rgba(255, 255, 255, 0.03));
+		filter: drop-shadow(0 14px 20px rgba(0, 0, 0, 0.24))
+			drop-shadow(0 2px 4px rgba(255, 255, 255, 0.03));
 	}
 
 	.symbol-art-sheet {
@@ -1287,13 +1128,6 @@
 			drop-shadow(0 10px 16px rgba(0, 0, 0, 0.28));
 	}
 
-	.cell-highlighted .symbol-tile-shell-bonus,
-	.cell-highlighted-quiet .symbol-tile-shell-bonus {
-		transform: translateY(-1px) scale(1.02);
-		filter: drop-shadow(0 0 18px color-mix(in srgb, var(--cell-glow) 38%, transparent))
-			drop-shadow(0 14px 20px rgba(0, 0, 0, 0.28));
-	}
-
 	.cell-highlighted-quiet .symbol-art,
 	.cell-highlighted-quiet .wheel-tile-art {
 		filter: drop-shadow(0 0 10px color-mix(in srgb, var(--cell-glow) 24%, transparent))
@@ -1304,6 +1138,24 @@
 		background: transparent;
 	}
 
+	.cell-bonus {
+		border-color: rgb(200, 140, 50);
+		box-shadow:
+			inset 0 3px 8px rgba(0, 0, 0, 0.7),
+			inset 0 -1px 3px rgba(0, 0, 0, 0.3),
+			0 0 0 1px rgb(80, 60, 22),
+			0 0 12px rgba(255, 183, 78, 0.15);
+	}
+
+	.cell-bonus-triggered {
+		border-color: rgb(240, 190, 80);
+		box-shadow:
+			inset 0 3px 8px rgba(0, 0, 0, 0.5),
+			0 0 0 2px rgba(255, 200, 80, 0.3),
+			0 0 24px rgba(255, 183, 78, 0.4),
+			0 0 48px rgba(255, 150, 40, 0.2);
+	}
+
 	.symbol-shell-wheel {
 		position: relative;
 		width: 100%;
@@ -1311,59 +1163,6 @@
 		display: grid;
 		place-items: center;
 		isolation: isolate;
-	}
-
-	.scatter-symbol {
-		position: relative;
-		width: calc(var(--symbol-size) * 0.82);
-		height: calc(var(--symbol-size) * 0.82);
-		display: block;
-		object-fit: contain;
-		border-radius: 18px;
-		box-shadow:
-			inset 0 0 0 2px rgba(255, 233, 176, 0.28),
-			inset 0 -10px 14px rgba(88, 25, 7, 0.34),
-			0 18px 24px rgba(0, 0, 0, 0.26),
-			0 0 18px rgba(110, 190, 255, 0.08);
-		transform: translateZ(0);
-	}
-
-	.scatter-trigger-flare {
-		position: absolute;
-		left: 50%;
-		bottom: -6px;
-		transform: translateX(-50%);
-		display: grid;
-		justify-items: center;
-		gap: 2px;
-		min-width: 62px;
-		padding: 6px 10px 7px;
-		border-radius: 999px;
-		background:
-			linear-gradient(180deg, rgba(49, 22, 10, 0.94), rgba(22, 12, 8, 0.96)),
-			radial-gradient(circle at top, rgba(255, 210, 120, 0.18), transparent 48%);
-		border: 1px solid rgba(255, 211, 132, 0.26);
-		box-shadow:
-			inset 0 1px 0 rgba(255, 255, 255, 0.08),
-			0 12px 20px rgba(0, 0, 0, 0.24);
-		z-index: 2;
-		animation: scatterTriggerTag 1160ms cubic-bezier(0.22, 1, 0.36, 1) infinite;
-	}
-
-	.scatter-trigger-flare span {
-		font-size: 0.48rem;
-		font-weight: 900;
-		letter-spacing: 0.16em;
-		text-transform: uppercase;
-		color: rgba(255, 218, 154, 0.74);
-	}
-
-	.scatter-trigger-flare strong {
-		font-size: 0.9rem;
-		font-weight: 900;
-		line-height: 1;
-		color: #fff0cb;
-		text-shadow: 0 0 10px rgba(255, 205, 118, 0.18);
 	}
 
 	.wheel-tile-shell {
@@ -1403,109 +1202,7 @@
 		width: var(--symbol-size);
 		height: var(--symbol-size);
 		object-fit: contain;
-		filter: drop-shadow(-5px -3px 10px rgba(111, 184, 255, 0.1))
-			drop-shadow(7px 9px 12px rgba(255, 188, 123, 0.06))
-			drop-shadow(0 12px 18px rgba(0, 0, 0, 0.26));
-	}
-
-	.wheel-result-badge {
-		position: absolute;
-		inset: 4px;
-		z-index: 13;
-		display: grid;
-		align-content: end;
-		justify-items: center;
-		gap: 4px;
-		padding: 14px 8px 10px;
-		border-radius: 24px;
-		border: 1px solid rgba(255, 255, 255, 0.14);
-		box-shadow:
-			0 18px 26px rgba(0, 0, 0, 0.36),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1),
-			inset 0 -12px 18px rgba(0, 0, 0, 0.24);
-		overflow: hidden;
-		animation: wheelResultReveal 320ms cubic-bezier(0.18, 0.88, 0.32, 1);
-	}
-
-	.wheel-result-badge::before {
-		content: '';
-		position: absolute;
-		inset: 0;
-		background:
-			radial-gradient(circle at 50% 18%, rgba(255, 255, 255, 0.18), transparent 34%),
-			linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 28%),
-			linear-gradient(0deg, rgba(0, 0, 0, 0.2), transparent 48%);
-		pointer-events: none;
-	}
-
-	.wheel-result-badge strong,
-	.wheel-result-badge em {
-		position: relative;
-		z-index: 1;
-	}
-
-	.wheel-result-badge strong {
-		font-size: clamp(1.8rem, 2.2vw, 2.55rem);
-		font-weight: 900;
-		line-height: 0.88;
-		letter-spacing: -0.08em;
-		color: #f9fcff;
-		text-shadow:
-			0 0 14px rgba(255, 255, 255, 0.18),
-			0 3px 0 rgba(9, 18, 30, 0.88),
-			0 14px 24px rgba(0, 0, 0, 0.34);
-	}
-
-	.wheel-result-badge em {
-		font-style: normal;
-		font-size: 0.58rem;
-		font-weight: 800;
-		line-height: 1;
-		color: rgba(228, 238, 247, 0.9);
-		text-shadow: 0 1px 0 rgba(0, 0, 0, 0.42);
-	}
-
-	.wheel-result-badge-blue {
-		background:
-			radial-gradient(circle at 50% 12%, rgba(156, 226, 255, 0.2), transparent 34%),
-			linear-gradient(180deg, rgba(20, 60, 104, 0.98), rgba(6, 21, 40, 0.98));
-		border-color: rgba(121, 206, 255, 0.24);
-		box-shadow:
-			0 18px 28px rgba(0, 0, 0, 0.34),
-			0 0 22px rgba(80, 189, 255, 0.18),
-			inset 0 1px 0 rgba(255, 255, 255, 0.12);
-	}
-
-	.wheel-result-badge-blue strong {
-		color: #8fe4ff;
-	}
-
-	.wheel-result-badge-blue em {
-		text-transform: uppercase;
-		letter-spacing: 0.08em;
-	}
-
-	.wheel-result-badge-red {
-		background:
-			radial-gradient(circle at 50% 12%, rgba(255, 220, 156, 0.16), transparent 34%),
-			linear-gradient(180deg, rgba(84, 25, 20, 0.98), rgba(30, 10, 12, 0.98));
-		border-color: rgba(255, 142, 102, 0.26);
-		box-shadow:
-			0 18px 28px rgba(0, 0, 0, 0.34),
-			0 0 22px rgba(255, 118, 88, 0.16),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
-	}
-
-	.wheel-result-badge-red strong {
-		color: #ffd981;
-	}
-
-	.wheel-result-badge-highlighted {
-		transform: scale(1.04);
-		box-shadow:
-			0 20px 30px rgba(0, 0, 0, 0.38),
-			0 0 26px color-mix(in srgb, var(--cell-glow) 42%, transparent),
-			inset 0 1px 0 rgba(255, 255, 255, 0.12);
+		filter: drop-shadow(0 12px 18px rgba(0, 0, 0, 0.26));
 	}
 
 	.wheel-result-chip {
@@ -1587,18 +1284,6 @@
 			0 18px 26px rgba(0, 0, 0, 0.34),
 			0 0 24px rgba(255, 214, 132, 0.14),
 			inset 0 1px 0 rgba(255, 255, 255, 0.08);
-		transform: translate(-50%, -52%) scale(1.06);
-		min-width: 90px;
-		padding: 10px 13px 9px;
-		z-index: 18;
-	}
-
-	.wheel-result-chip-sticky-new {
-		animation: stickyLockChipPulse 860ms cubic-bezier(0.18, 0.88, 0.24, 1) both;
-		box-shadow:
-			0 22px 34px rgba(0, 0, 0, 0.36),
-			0 0 30px color-mix(in srgb, var(--cell-glow) 34%, transparent),
-			inset 0 1px 0 rgba(255, 255, 255, 0.1);
 	}
 
 	.wheel-line-burst {
@@ -2013,10 +1698,6 @@
 		animation: wheelValueSettle 640ms cubic-bezier(0.16, 0.84, 0.24, 1) both;
 	}
 
-	.wheel-result-burst-sticky {
-		animation: wheelStickyLockBurst 980ms cubic-bezier(0.14, 0.9, 0.24, 1) both;
-	}
-
 	.wheel-result-burst strong {
 		font-size: clamp(2rem, 3.2vw, 3.2rem);
 		font-weight: 900;
@@ -2248,62 +1929,6 @@
 		}
 	}
 
-	@keyframes wheelStickyLockBurst {
-		0% {
-			opacity: 0;
-			transform: translate(-50%, -12%) scale(0.46) rotate(-7deg);
-			filter: blur(12px);
-		}
-
-		30% {
-			opacity: 1;
-			transform: translate(-50%, -78%) scale(1.3) rotate(2deg);
-			filter: blur(0);
-		}
-
-		62% {
-			opacity: 1;
-			transform: translate(-50%, -46%) scale(0.98) rotate(0deg);
-		}
-
-		100% {
-			opacity: 1;
-			transform: translate(-50%, -52%) scale(1.06) rotate(0deg);
-			filter: blur(0);
-		}
-	}
-
-	@keyframes stickyLockCellPulse {
-		0% {
-			transform: translateY(0) scale(1);
-		}
-
-		48% {
-			transform: translateY(-3px) scale(1.055);
-		}
-
-		100% {
-			transform: translateY(0) scale(1.01);
-		}
-	}
-
-	@keyframes stickyLockChipPulse {
-		0% {
-			transform: translate(-50%, -40%) scale(0.82);
-			opacity: 0.8;
-		}
-
-		52% {
-			transform: translate(-50%, -56%) scale(1.14);
-			opacity: 1;
-		}
-
-		100% {
-			transform: translate(-50%, -52%) scale(1.06);
-			opacity: 1;
-		}
-	}
-
 	@keyframes wheelPopBlue {
 		0% {
 			transform: translateY(20px) scale(0.7);
@@ -2452,89 +2077,7 @@
 		}
 	}
 
-	@keyframes bonusTriggerPulse {
-		0% {
-			transform: translateY(0) scale(1);
-			filter: brightness(1);
-		}
-
-		50% {
-			transform: translateY(-3px) scale(1.05);
-			filter: brightness(1.12);
-		}
-
-		100% {
-			transform: translateY(0) scale(1.01);
-			filter: brightness(1);
-		}
-	}
-
-	@keyframes scatterLift {
-		0% {
-			transform: translateY(0) scale(1);
-		}
-
-		50% {
-			transform: translateY(-3px) scale(1.045);
-		}
-
-		100% {
-			transform: translateY(0) scale(1);
-		}
-	}
-
-	@keyframes scatterTriggerHold {
-		0% {
-			transform: translateY(6px) scale(0.94);
-			filter: brightness(0.86) saturate(0.94);
-		}
-
-		58% {
-			transform: translateY(-4px) scale(1.05);
-			filter: brightness(1.08) saturate(1.06);
-		}
-
-		100% {
-			transform: translateY(-2px) scale(1.02);
-			filter: brightness(1) saturate(1);
-		}
-	}
-
-	@keyframes scatterTriggerAura {
-		0%,
-		100% {
-			opacity: 0.72;
-			transform: scale(0.94) rotate(0deg);
-		}
-
-		50% {
-			opacity: 1;
-			transform: scale(1.04) rotate(8deg);
-		}
-	}
-
-	@keyframes scatterTriggerTag {
-		0%,
-		100% {
-			transform: translateX(-50%) translateY(0) scale(1);
-		}
-
-		50% {
-			transform: translateX(-50%) translateY(-3px) scale(1.05);
-		}
-	}
-
 	@media (max-width: 960px) {
-		.board-frame {
-			transform: perspective(1600px) rotateX(2deg);
-		}
-
-		.board-contact-shadow {
-			bottom: -44px;
-			height: 92px;
-			opacity: 0.7;
-		}
-
 		.board {
 			transform: scale(0.88);
 			transform-origin: top center;
