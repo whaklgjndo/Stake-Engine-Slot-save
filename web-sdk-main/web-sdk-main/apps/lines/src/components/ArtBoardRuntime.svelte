@@ -1,0 +1,316 @@
+<script lang="ts">
+	const backgroundArt = new URL('../stories/assets/bg-throne-room.png', import.meta.url).href;
+	const boardFrameArt = new URL('../stories/assets/board-frame.png', import.meta.url).href;
+	const cellGridOverlayArt = new URL('../stories/assets/cell-grid-overlay.png', import.meta.url).href;
+	const hudControlsArt = new URL('../stories/assets/hud-controls-bar.png', import.meta.url).href;
+
+	let balance = 12345.67;
+	let betSize = 10;
+	let win = 0;
+	let quickSpin = false;
+	let autoSpin = false;
+	let isSpinning = false;
+
+	const betOptions = [0.2, 0.4, 1, 2, 5, 10, 20, 50] as const;
+
+	function formatNumber(value: number): string {
+		return value.toLocaleString(undefined, {
+			minimumFractionDigits: 2,
+			maximumFractionDigits: 2,
+		});
+	}
+
+	function updateBet(direction: -1 | 1): void {
+		if (isSpinning) return;
+		const currentIndex = Math.max(0, betOptions.findIndex((value) => value === betSize));
+		const nextIndex = Math.min(Math.max(currentIndex + direction, 0), betOptions.length - 1);
+		betSize = betOptions[nextIndex];
+	}
+
+	function toggleQuickSpin(): void {
+		if (isSpinning) return;
+		quickSpin = !quickSpin;
+	}
+
+	function toggleAutoSpin(): void {
+		if (isSpinning) return;
+		autoSpin = !autoSpin;
+	}
+
+	async function spin(): Promise<void> {
+		if (isSpinning) return;
+		isSpinning = true;
+		const result = Number((Math.random() * betSize * 8).toFixed(2));
+		win = result;
+		balance = Number(Math.max(0, balance - betSize + result).toFixed(2));
+		await new Promise((resolve) => setTimeout(resolve, quickSpin ? 240 : 700));
+		isSpinning = false;
+	}
+</script>
+
+<div class="art-slot-shell">
+	<img class="background-art" src={backgroundArt} alt="" draggable="false" />
+
+	<div class="board-wrap" class:is-spinning={isSpinning}>
+		<img class="board-frame-art" src={boardFrameArt} alt="Medieval slot board" draggable="false" />
+		<div class="board-grid-window" aria-hidden="true">
+			<div class="board-grid-velvet"></div>
+			<img
+				class="board-grid-overlay"
+				src={cellGridOverlayArt}
+				alt=""
+				draggable="false"
+			/>
+		</div>
+	</div>
+
+	<div class="hud-wrap">
+		<img class="hud-art" src={hudControlsArt} alt="Slot controls" draggable="false" />
+
+		<div class="hud-readout balance-readout">{formatNumber(balance)}</div>
+		<div class="hud-readout bet-readout">{formatNumber(betSize)}</div>
+		<div class="hud-readout win-readout">{formatNumber(win)}</div>
+
+		<button
+			type="button"
+			class="hud-hitbox spin-hitbox"
+			on:click={spin}
+			aria-label={isSpinning ? 'Spinning' : 'Spin'}
+		></button>
+
+		<button
+			type="button"
+			class="hud-hitbox bet-minus-hitbox"
+			on:click={() => updateBet(-1)}
+			aria-label="Decrease bet"
+		></button>
+
+		<button
+			type="button"
+			class="hud-hitbox bet-plus-hitbox"
+			on:click={() => updateBet(1)}
+			aria-label="Increase bet"
+		></button>
+
+		<button
+			type="button"
+			class="hud-hitbox quick-spin-hitbox"
+			class:is-active={quickSpin}
+			on:click={toggleQuickSpin}
+			aria-pressed={quickSpin}
+			aria-label="Toggle quick spin"
+		></button>
+
+		<button
+			type="button"
+			class="hud-hitbox auto-spin-hitbox"
+			class:is-active={autoSpin}
+			on:click={toggleAutoSpin}
+			aria-pressed={autoSpin}
+			aria-label="Toggle auto spin"
+		></button>
+	</div>
+</div>
+
+<style>
+	:global(body) {
+		margin: 0;
+		background: #040608;
+	}
+
+	.art-slot-shell {
+		position: relative;
+		width: min(100vw, calc(100vh * 1.7655));
+		aspect-ratio: 2048 / 1160;
+		margin: 0 auto;
+		overflow: hidden;
+		background: #040608;
+		user-select: none;
+	}
+
+	.background-art {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+		pointer-events: none;
+	}
+
+	.board-wrap {
+		position: absolute;
+		left: 50%;
+		top: 42.2%;
+		width: 35.2%;
+		transform: translate(-50%, -50%);
+		filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.42));
+	}
+
+	.board-frame-art {
+		display: block;
+		width: 100%;
+		height: auto;
+		pointer-events: none;
+	}
+
+	.board-grid-window {
+		position: absolute;
+		left: 5.8%;
+		top: 9.6%;
+		width: 88.3%;
+		height: 82.2%;
+		overflow: hidden;
+		border-radius: 2%;
+	}
+
+	.board-grid-velvet {
+		position: absolute;
+		inset: 0;
+		background:
+			radial-gradient(circle at 20% 22%, rgba(255, 154, 90, 0.2), transparent 34%),
+			radial-gradient(circle at 78% 20%, rgba(162, 198, 255, 0.18), transparent 34%),
+			linear-gradient(90deg, #6e1d11 0%, #892818 18%, #7b2a1a 39%, #6a2620 51%, #45587f 66%, #24375e 82%, #182b4b 100%);
+	}
+
+	.board-grid-overlay {
+		position: absolute;
+		inset: -0.1% 0 0 0;
+		width: 100%;
+		height: 100%;
+		object-fit: fill;
+		mix-blend-mode: screen;
+		opacity: 0.98;
+		filter: brightness(1.04) saturate(1.12);
+		pointer-events: none;
+	}
+
+	.board-wrap.is-spinning {
+		animation: boardPulse 700ms ease-in-out;
+	}
+
+	.hud-wrap {
+		position: absolute;
+		left: 50%;
+		bottom: 1.8%;
+		width: 37.7%;
+		transform: translateX(-50%);
+		filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
+	}
+
+	.hud-art {
+		display: block;
+		width: 100%;
+		height: auto;
+		pointer-events: none;
+	}
+
+	.hud-readout {
+		position: absolute;
+		height: 12.4%;
+		display: grid;
+		place-items: center;
+		font:
+			800 clamp(10px, 1.15vw, 22px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
+		letter-spacing: 0.02em;
+		color: #f2f2f2;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+	}
+
+	.balance-readout {
+		left: 5.8%;
+		top: 36.2%;
+		width: 25.2%;
+	}
+
+	.bet-readout {
+		left: 57.6%;
+		top: 36.2%;
+		width: 19.2%;
+	}
+
+	.win-readout {
+		left: 56.7%;
+		top: 69.4%;
+		width: 26.2%;
+	}
+
+	.hud-hitbox {
+		position: absolute;
+		border: 0;
+		padding: 0;
+		background: transparent;
+		cursor: pointer;
+		-webkit-tap-highlight-color: transparent;
+	}
+
+	.hud-hitbox::after {
+		content: '';
+		position: absolute;
+		inset: 0;
+		border-radius: inherit;
+		box-shadow: 0 0 0 0 rgba(160, 213, 255, 0);
+		transition: box-shadow 140ms ease, background-color 140ms ease;
+	}
+
+	.hud-hitbox:hover::after,
+	.hud-hitbox:focus-visible::after {
+		box-shadow: 0 0 0 2px rgba(160, 213, 255, 0.52);
+		background: rgba(160, 213, 255, 0.07);
+	}
+
+	.hud-hitbox.is-active::after {
+		box-shadow: 0 0 0 2px rgba(255, 212, 112, 0.58);
+		background: rgba(255, 212, 112, 0.08);
+	}
+
+	.spin-hitbox {
+		left: 34.1%;
+		top: 2.5%;
+		width: 17.4%;
+		height: 76.4%;
+		border-radius: 50%;
+	}
+
+	.bet-minus-hitbox {
+		left: 76.6%;
+		top: 20.6%;
+		width: 4.1%;
+		height: 22.2%;
+		border-radius: 50%;
+	}
+
+	.bet-plus-hitbox {
+		left: 80.8%;
+		top: 20.6%;
+		width: 4.1%;
+		height: 22.2%;
+		border-radius: 50%;
+	}
+
+	.quick-spin-hitbox {
+		left: 90.0%;
+		top: 15.6%;
+		width: 7.2%;
+		height: 26.8%;
+		border-radius: 999px;
+	}
+
+	.auto-spin-hitbox {
+		left: 87.8%;
+		top: 53.8%;
+		width: 10.2%;
+		height: 18.4%;
+		border-radius: 10px;
+	}
+
+	@keyframes boardPulse {
+		0%,
+		100% {
+			transform: translate(-50%, -50%) scale(1);
+		}
+
+		50% {
+			transform: translate(-50%, -50%) scale(1.01);
+		}
+	}
+</style>
