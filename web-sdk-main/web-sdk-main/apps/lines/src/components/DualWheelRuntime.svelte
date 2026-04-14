@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ArtBoardRuntime from './ArtBoardRuntime.svelte';
+	import DualWheelGame from '../stories/components/DualWheelGame.svelte';
 </script>
 
-<ArtBoardRuntime />
+<DualWheelGame />
