@@ -133,9 +133,9 @@
 	.board-grid-window {
 		position: absolute;
 		left: 5.78%;
-		top: 12.6%;
+		top: 13.4%;
 		width: 88.28%;
-		height: 75.7%;
+		height: 73.9%;
 		overflow: hidden;
 		border-radius: 2%;
 	}
@@ -183,9 +183,9 @@
 
 	.spin-core-shell {
 		position: absolute;
-		left: 41.3%;
-		top: -3.9%;
-		width: 8.8%;
+		left: 41.95%;
+		top: 4.3%;
+		width: 7.25%;
 		aspect-ratio: 1;
 		border-radius: 50%;
 		pointer-events: none;
@@ -199,11 +199,11 @@
 		border-radius: 50%;
 		display: grid;
 		place-items: center;
-		font: 900 clamp(12px, 1.15vw, 22px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
+		font: 900 clamp(11px, 0.92vw, 18px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
 		letter-spacing: 0.04em;
 		color: #082544;
 		background: radial-gradient(circle at 38% 28%, rgba(233, 247, 255, 0.96), rgba(171, 222, 255, 0.96) 34%, rgba(83, 166, 236, 0.98) 68%, rgba(33, 99, 174, 0.98) 100%);
-		box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.58), inset 0 -4px 8px rgba(10, 52, 110, 0.42), 0 0 18px rgba(114, 194, 255, 0.18);
+		box-shadow: inset 0 2px 4px rgba(255, 255, 255, 0.58), inset 0 -4px 8px rgba(10, 52, 110, 0.42), 0 0 14px rgba(114, 194, 255, 0.16);
 	}
 
 	.hud-readout {
@@ -265,10 +265,10 @@
 	}
 
 	.spin-hitbox {
-		left: 39.8%;
-		top: -4.5%;
-		width: 11.7%;
-		height: 59%;
+		left: 41.25%;
+		top: 3.2%;
+		width: 8.6%;
+		height: 40.5%;
 		border-radius: 50%;
 	}
 
