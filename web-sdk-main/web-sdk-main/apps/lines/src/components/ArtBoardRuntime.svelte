@@ -50,17 +50,13 @@
 
 <div class="art-slot-shell">
 	<img class="background-art" src={backgroundArt} alt="" draggable="false" />
+	<div class="stage-vignette" aria-hidden="true"></div>
 
 	<div class="board-wrap" class:is-spinning={isSpinning}>
 		<img class="board-frame-art" src={boardFrameArt} alt="Medieval slot board" draggable="false" />
 		<div class="board-grid-window" aria-hidden="true">
 			<div class="board-grid-velvet"></div>
-			<img
-				class="board-grid-overlay"
-				src={cellGridOverlayArt}
-				alt=""
-				draggable="false"
-			/>
+			<img class="board-grid-overlay" src={cellGridOverlayArt} alt="" draggable="false" />
 		</div>
 	</div>
 
@@ -71,44 +67,11 @@
 		<div class="hud-readout bet-readout">{formatNumber(betSize)}</div>
 		<div class="hud-readout win-readout">{formatNumber(win)}</div>
 
-		<button
-			type="button"
-			class="hud-hitbox spin-hitbox"
-			on:click={spin}
-			aria-label={isSpinning ? 'Spinning' : 'Spin'}
-		></button>
-
-		<button
-			type="button"
-			class="hud-hitbox bet-minus-hitbox"
-			on:click={() => updateBet(-1)}
-			aria-label="Decrease bet"
-		></button>
-
-		<button
-			type="button"
-			class="hud-hitbox bet-plus-hitbox"
-			on:click={() => updateBet(1)}
-			aria-label="Increase bet"
-		></button>
-
-		<button
-			type="button"
-			class="hud-hitbox quick-spin-hitbox"
-			class:is-active={quickSpin}
-			on:click={toggleQuickSpin}
-			aria-pressed={quickSpin}
-			aria-label="Toggle quick spin"
-		></button>
-
-		<button
-			type="button"
-			class="hud-hitbox auto-spin-hitbox"
-			class:is-active={autoSpin}
-			on:click={toggleAutoSpin}
-			aria-pressed={autoSpin}
-			aria-label="Toggle auto spin"
-		></button>
+		<button type="button" class="hud-hitbox spin-hitbox" on:click={spin} aria-label={isSpinning ? 'Spinning' : 'Spin'}></button>
+		<button type="button" class="hud-hitbox bet-minus-hitbox" on:click={() => updateBet(-1)} aria-label="Decrease bet"></button>
+		<button type="button" class="hud-hitbox bet-plus-hitbox" on:click={() => updateBet(1)} aria-label="Increase bet"></button>
+		<button type="button" class="hud-hitbox quick-spin-hitbox" class:is-active={quickSpin} on:click={toggleQuickSpin} aria-pressed={quickSpin} aria-label="Toggle quick spin"></button>
+		<button type="button" class="hud-hitbox auto-spin-hitbox" class:is-active={autoSpin} on:click={toggleAutoSpin} aria-pressed={autoSpin} aria-label="Toggle auto spin"></button>
 	</div>
 </div>
 
@@ -134,16 +97,26 @@
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
+		object-position: center center;
+		pointer-events: none;
+	}
+
+	.stage-vignette {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(180deg, rgba(0, 0, 0, 0.12) 0%, rgba(0, 0, 0, 0) 20%, rgba(0, 0, 0, 0) 72%, rgba(0, 0, 0, 0.28) 100%),
+			radial-gradient(ellipse at center, rgba(0, 0, 0, 0) 44%, rgba(0, 0, 0, 0.18) 100%);
 		pointer-events: none;
 	}
 
 	.board-wrap {
 		position: absolute;
-		left: 50%;
-		top: 42.2%;
-		width: 35.2%;
+		left: 50.1%;
+		top: 45.1%;
+		width: 50.2%;
 		transform: translate(-50%, -50%);
-		filter: drop-shadow(0 18px 36px rgba(0, 0, 0, 0.42));
+		filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.46));
 	}
 
 	.board-frame-art {
@@ -155,10 +128,10 @@
 
 	.board-grid-window {
 		position: absolute;
-		left: 5.8%;
-		top: 9.6%;
-		width: 88.3%;
-		height: 82.2%;
+		left: 5.78%;
+		top: 9.58%;
+		width: 88.28%;
+		height: 82.22%;
 		overflow: hidden;
 		border-radius: 2%;
 	}
@@ -174,7 +147,7 @@
 
 	.board-grid-overlay {
 		position: absolute;
-		inset: -0.1% 0 0 0;
+		inset: 0;
 		width: 100%;
 		height: 100%;
 		object-fit: fill;
@@ -191,10 +164,10 @@
 	.hud-wrap {
 		position: absolute;
 		left: 50%;
-		bottom: 1.8%;
-		width: 37.7%;
+		bottom: 0.2%;
+		width: 69.4%;
 		transform: translateX(-50%);
-		filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.45));
+		filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.5));
 	}
 
 	.hud-art {
@@ -209,11 +182,10 @@
 		height: 12.4%;
 		display: grid;
 		place-items: center;
-		font:
-			800 clamp(10px, 1.15vw, 22px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
+		font: 800 clamp(12px, 1vw, 24px) / 1 'Trebuchet MS', 'Segoe UI', sans-serif;
 		letter-spacing: 0.02em;
 		color: #f2f2f2;
-		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.7);
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
 	}
 
 	.balance-readout {
@@ -288,7 +260,7 @@
 	}
 
 	.quick-spin-hitbox {
-		left: 90.0%;
+		left: 90%;
 		top: 15.6%;
 		width: 7.2%;
 		height: 26.8%;
