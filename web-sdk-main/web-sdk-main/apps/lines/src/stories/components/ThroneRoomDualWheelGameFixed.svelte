@@ -10,15 +10,7 @@ const hudControlsArt=new URL('../assets/hud-controls-bar.png',import.meta.url).h
 <DualWheelGame/>
 </div>
 <style>
-.throne-room-game-shell{
-position:relative;min-height:100vh;overflow:hidden;background:#040608;
---scene-width:min(100vw,calc(100vh * 1.777));
---scene-height:calc(var(--scene-width) / 1.777);
---hud-width:calc(var(--scene-width) * 0.4418);
---hud-height:calc(var(--scene-height) * 0.1667);
---hud-left:50%;
---hud-top:calc((100vh - var(--scene-height)) * .5 + var(--scene-height) * 0.8333);
-}
+.throne-room-game-shell{position:relative;min-height:100vh;overflow:hidden;background:#040608;--scene-width:min(100vw,calc(100vh * 1.777));--scene-height:calc(var(--scene-width) / 1.777);--hud-width:calc(var(--scene-width) * 0.4418);--hud-height:calc(var(--scene-height) * 0.1667);--hud-left:50%;--hud-top:calc((100vh - var(--scene-height)) * .5 + var(--scene-height) * 0.8333)}
 .hud-underlay{position:absolute;left:var(--hud-left);top:var(--hud-top);width:var(--hud-width);height:auto;transform:translateX(-50%);pointer-events:none;filter:drop-shadow(0 16px 24px rgba(0,0,0,.5))}
 :global(.throne-room-game-shell .game-shell){background:transparent;min-height:100vh}
 :global(.throne-room-game-shell .theme-backdrop){display:none}
@@ -37,31 +29,31 @@ position:relative;min-height:100vh;overflow:hidden;background:#040608;
 :global(.throne-room-game-shell .top-bar-stats){position:absolute;inset:0;display:block}
 :global(.throne-room-game-shell .stat-pill){position:absolute;padding:0;border:0;background:transparent;box-shadow:none;text-align:center}
 :global(.throne-room-game-shell .stat-pill span){display:none}
-:global(.throne-room-game-shell .stat-pill strong){display:grid;place-items:center;height:100%;font-size:clamp(9px,.78vw,14px);font-weight:800;color:#f2f2f2;text-shadow:0 1px 2px rgba(0,0,0,.82)}
-:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(1)){left:4.8%;top:43%;width:26.5%;height:15%}
-:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(2)){left:59.2%;top:18%;width:12.2%;height:15%}
-:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(3)){left:55.8%;top:61.5%;width:22.6%;height:15%}
+:global(.throne-room-game-shell .stat-pill strong){display:grid;place-items:center;height:100%;font-size:clamp(9px,.72vw,13px);font-weight:800;color:#f2f2f2;text-shadow:0 1px 2px rgba(0,0,0,.82)}
+:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(1)){left:5.3%;top:43.8%;width:26.4%;height:13.5%}
+:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(2)){left:58.7%;top:23.8%;width:13.7%;height:12.8%}
+:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(3)){left:55.8%;top:60.8%;width:22.8%;height:13.5%}
 :global(.throne-room-game-shell .game-controls){position:absolute;left:var(--hud-left);top:var(--hud-top);width:var(--hud-width);height:var(--hud-height);transform:translateX(-50%);padding:0;border:0;background:transparent;backdrop-filter:none;grid-template-columns:1fr;gap:0}
 :global(.throne-room-game-shell .controls-left),:global(.throne-room-game-shell .controls-center),:global(.throne-room-game-shell .controls-right){position:absolute;gap:0}
-:global(.throne-room-game-shell .controls-left){left:55.1%;top:15.3%;width:24.8%;height:21.8%}
-:global(.throne-room-game-shell .controls-center){left:40.4%;top:12.1%;width:10.96%;height:50.8%;transform:none;justify-items:center;margin-top:0}
-:global(.throne-room-game-shell .controls-right){left:84.6%;top:15.3%;width:13.6%;height:48.4%}
+:global(.throne-room-game-shell .controls-left){left:55.2%;top:19.2%;width:24.2%;height:17.6%}
+:global(.throne-room-game-shell .controls-center){left:40.85%;top:3.5%;width:10.95%;height:50.8%;transform:none;justify-items:center;margin-top:0}
+:global(.throne-room-game-shell .controls-right){left:84.8%;top:16.1%;width:12.9%;height:45.4%}
 :global(.throne-room-game-shell .bet-stepper){position:absolute;inset:0;display:block}
 :global(.throne-room-game-shell .bet-display){display:none}
-:global(.throne-room-game-shell .bet-stepper .ctrl-button:first-child){position:absolute;left:0;top:0;width:13%;height:100%;padding:0;border-radius:999px}
-:global(.throne-room-game-shell .bet-stepper .ctrl-button:last-child){position:absolute;right:0;top:0;width:13%;height:100%;padding:0;border-radius:999px}
+:global(.throne-room-game-shell .bet-stepper .ctrl-button:first-child){position:absolute;left:0;top:0;width:12.5%;height:100%;padding:0;border-radius:999px}
+:global(.throne-room-game-shell .bet-stepper .ctrl-button:last-child){position:absolute;right:0;top:0;width:12.5%;height:100%;padding:0;border-radius:999px}
 :global(.throne-room-game-shell .ctrl-button){padding:0;border:0;background:transparent;font-size:0;box-shadow:none}
 :global(.throne-room-game-shell .ctrl-button:hover:enabled){transform:none}
 :global(.throne-room-game-shell .bonus-buy-row){display:none}
-:global(.throne-room-game-shell .spin-button){width:100%;height:100%;margin-top:0;font-size:.74rem;box-shadow:none;border:0;background:radial-gradient(circle at 38% 28%,rgba(233,247,255,.96),rgba(171,222,255,.96) 34%,rgba(83,166,236,.98) 68%,rgba(33,99,174,.98) 100%)}
+:global(.throne-room-game-shell .spin-button){width:100%;height:100%;margin-top:0;font-size:.72rem;box-shadow:none;border:0;background:radial-gradient(circle at 38% 28%,rgba(233,247,255,.96),rgba(171,222,255,.96) 34%,rgba(83,166,236,.98) 68%,rgba(33,99,174,.98) 100%)}
 :global(.throne-room-game-shell .spin-button-stop){background:linear-gradient(180deg,#ffc484,#f98f54 56%,#e55a2f 100%)}
 :global(.throne-room-game-shell .spin-button-skip){background:linear-gradient(180deg,#c2e8ff,#6fc4ff 56%,#37a2f5 100%)}
 :global(.throne-room-game-shell .status-text){display:none}
 :global(.throne-room-game-shell .toggle-row){position:absolute;inset:0;display:block}
 :global(.throne-room-game-shell .toggle-button){position:absolute;padding:0;background:transparent;border:0;border-radius:8px;font-size:0;color:transparent;line-height:0;box-shadow:none}
 :global(.throne-room-game-shell .toggle-button > * ){font-size:0!important;color:transparent!important}
-:global(.throne-room-game-shell .toggle-row .toggle-button:first-child){left:19%;top:0;width:73%;height:36%}
-:global(.throne-room-game-shell .toggle-row .toggle-button:last-child){left:0;top:53%;width:100%;height:47%;margin-top:0}
+:global(.throne-room-game-shell .toggle-row .toggle-button:first-child){left:18.5%;top:0;width:73.5%;height:34.5%}
+:global(.throne-room-game-shell .toggle-row .toggle-button:last-child){left:0;top:51.5%;width:100%;height:45%;margin-top:0}
 :global(.throne-room-game-shell .autoplay-select),:global(.throne-room-game-shell .autoplay-label),:global(.throne-room-game-shell .info-button){display:none}
 @media (max-width:1200px){.throne-room-game-shell{--scene-width:min(100vw,calc(100vh * 1.72));}}
 @media (max-width:960px){.throne-room-game-shell{--scene-width:min(100vw,calc(100vh * 1.58));}:global(.throne-room-game-shell .board-frame){transform:translateY(0) scale(.8)}}
