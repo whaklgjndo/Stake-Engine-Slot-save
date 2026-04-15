@@ -1,4 +1,4 @@
-import ThroneRoomDualWheelGame from './components/ThroneRoomDualWheelGame.svelte';
+import ThroneRoomDualWheelGameFixed from './components/ThroneRoomDualWheelGameFixed.svelte';
 
 export default {
 	title: 'GAME/Dual Wheel Reels',
@@ -6,7 +6,7 @@ export default {
 		layout: 'fullscreen',
 	},
 	render: () => ({
-		Component: ThroneRoomDualWheelGame,
+		Component: ThroneRoomDualWheelGameFixed,
 	}),
 };
 

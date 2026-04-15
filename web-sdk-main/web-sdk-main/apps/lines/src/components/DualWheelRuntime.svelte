@@ -1,5 +1,5 @@
 <script lang="ts">
-	import ThroneRoomDualWheelGame from '../stories/components/ThroneRoomDualWheelGame.svelte';
+	import ThroneRoomDualWheelGameFixed from '../stories/components/ThroneRoomDualWheelGameFixed.svelte';
 </script>
 
-<ThroneRoomDualWheelGame />
+<ThroneRoomDualWheelGameFixed />
