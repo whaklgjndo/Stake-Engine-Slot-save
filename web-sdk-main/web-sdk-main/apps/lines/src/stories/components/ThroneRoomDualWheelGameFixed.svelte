@@ -10,13 +10,13 @@ const hudControlsArt=new URL('../assets/hud-controls-bar.png',import.meta.url).h
 <DualWheelGame/>
 </div>
 <style>
-.throne-room-game-shell{position:relative;min-height:100vh;overflow:hidden;background:#040608;--hud-width:min(44vw,720px);--hud-height:calc(var(--hud-width)*.1903);--hud-top:calc(50% + 275px)}
+.throne-room-game-shell{position:relative;min-height:100vh;overflow:hidden;background:#040608;--hud-width:min(44vw,720px);--hud-height:calc(var(--hud-width)*.1903);--hud-top:calc(50% + 338px)}
 .hud-underlay{position:absolute;left:50%;top:var(--hud-top);width:var(--hud-width);transform:translateX(-50%);pointer-events:none;z-index:1;filter:drop-shadow(0 16px 24px rgba(0,0,0,.5))}
 :global(.throne-room-game-shell .game-shell){background:transparent;min-height:100vh}
 :global(.throne-room-game-shell .theme-backdrop){display:none}
-:global(.throne-room-game-shell .game-stage){display:grid;place-items:center;padding:18px 24px 250px}
+:global(.throne-room-game-shell .game-stage){display:grid;place-items:center;padding:18px 24px 320px}
 :global(.throne-room-game-shell .feature-banner){margin-inline:auto;width:min(640px,calc(100vw - 120px))}
-:global(.throne-room-game-shell .board-frame){transform:translateY(-12px) scale(1.02);transform-origin:center top}
+:global(.throne-room-game-shell .board-frame){transform:translateY(-18px) scale(.98);transform-origin:center top}
 :global(.throne-room-game-shell .board){padding:0;background:transparent;box-shadow:none}
 :global(.throne-room-game-shell .board::before),:global(.throne-room-game-shell .board::after){display:none}
 :global(.throne-room-game-shell .cell){border-width:2px;border-radius:10px;border-color:rgba(181,144,58,.96);box-shadow:inset 0 2px 6px rgba(0,0,0,.42),0 0 0 1px rgba(74,50,14,.92)}
@@ -53,6 +53,6 @@ const hudControlsArt=new URL('../assets/hud-controls-bar.png',import.meta.url).h
 :global(.throne-room-game-shell .toggle-button){padding:6px 0;background:rgba(5,12,18,.28);border:1px solid rgba(255,255,255,.06);border-radius:8px;font-size:.64rem}
 :global(.throne-room-game-shell .toggle-row .toggle-button:last-child){margin-top:30px}
 :global(.throne-room-game-shell .autoplay-select),:global(.throne-room-game-shell .autoplay-label),:global(.throne-room-game-shell .info-button){display:none}
-@media (max-width:1200px){.throne-room-game-shell{--hud-width:min(56vw,680px);--hud-top:calc(50% + 255px)}:global(.throne-room-game-shell .board-frame){transform:translateY(-6px) scale(.94)}}
-@media (max-width:960px){.throne-room-game-shell{--hud-width:min(78vw,620px);--hud-top:calc(50% + 220px)}:global(.throne-room-game-shell .game-stage){padding-bottom:210px}:global(.throne-room-game-shell .board-frame){transform:translateY(0) scale(.82)}}
+@media (max-width:1200px){.throne-room-game-shell{--hud-width:min(56vw,680px);--hud-top:calc(50% + 305px)}:global(.throne-room-game-shell .board-frame){transform:translateY(-8px) scale(.91)}:global(.throne-room-game-shell .game-stage){padding-bottom:290px}}
+@media (max-width:960px){.throne-room-game-shell{--hud-width:min(78vw,620px);--hud-top:calc(50% + 248px)}:global(.throne-room-game-shell .game-stage){padding-bottom:250px}:global(.throne-room-game-shell .board-frame){transform:translateY(0) scale(.8)}}
 </style>
