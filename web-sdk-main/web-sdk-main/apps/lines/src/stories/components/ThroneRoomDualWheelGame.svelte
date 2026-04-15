@@ -122,6 +122,8 @@
 		height: 58%;
 		transform: translateX(-50%);
 		justify-items: center;
+		/* Cancel the float-up margin that's only for the standalone game */
+		margin-top: 0;
 	}
 
 	:global(.throne-room-game-shell .controls-right) {
@@ -245,6 +247,73 @@
 		bottom: 11%;
 		width: 30px;
 		height: 30px;
+	}
+
+	/* ── HUD stat readouts: transparent over PNG art ── */
+	/* The HUD PNG already has labels baked in — just show numbers */
+
+	:global(.throne-room-game-shell .hud-stat-group) {
+		position: absolute;
+		left: 0;
+		top: 28%;
+		width: 100%;
+		gap: 0;
+	}
+
+	:global(.throne-room-game-shell .hud-stat) {
+		gap: 0;
+	}
+
+	:global(.throne-room-game-shell .hud-stat-label) {
+		display: none;
+	}
+
+	:global(.throne-room-game-shell .hud-stat-value) {
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		padding: 0;
+		min-width: 0;
+		font-size: clamp(10px, 1vw, 20px);
+		font-weight: 800;
+		color: #f2f2f2;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+		text-align: center;
+	}
+
+	/* WIN readout below spin button */
+	:global(.throne-room-game-shell .hud-win-display) {
+		position: absolute;
+		left: 0;
+		bottom: 8%;
+		width: 100%;
+		text-align: center;
+		gap: 0;
+	}
+
+	:global(.throne-room-game-shell .hud-win-value) {
+		background: transparent;
+		border: none;
+		box-shadow: none;
+		padding: 0;
+		min-width: 0;
+		font-size: clamp(10px, 1vw, 20px);
+		font-weight: 800;
+		color: #f2f2f2;
+		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.75);
+		text-align: center;
+	}
+
+	:global(.throne-room-game-shell .hud-win-display .hud-stat-label) {
+		display: none;
+	}
+
+	/* Spin button sized to the HUD art circle */
+	:global(.throne-room-game-shell .spin-button) {
+		width: 68px;
+		height: 68px;
+		font-size: 0.88rem;
+		margin-top: 0;
 	}
 
 	@media (max-width: 960px) {
