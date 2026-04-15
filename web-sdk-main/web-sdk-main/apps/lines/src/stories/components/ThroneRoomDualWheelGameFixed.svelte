@@ -9,10 +9,6 @@
 		'../../components/art/svg_components_bundle/frame_open.svg',
 		import.meta.url
 	).href;
-	const frameInnerBevelArt = new URL(
-		'../../components/art/svg_components_bundle/frame_inner_bevel.svg',
-		import.meta.url
-	).href;
 	const gridLeftArt = new URL(
 		'../../components/art/svg_components_bundle/grid_left.svg',
 		import.meta.url
@@ -33,8 +29,16 @@
 		'../../components/art/svg_components_bundle/autospin_icon.svg',
 		import.meta.url
 	).href;
+	const bonusIconArt = new URL(
+		'../../components/art/svg_components_bundle/bonus_icon.svg',
+		import.meta.url
+	).href;
 	const lightningYellowArt = new URL(
 		'../../components/art/svg_components_bundle/lightning_yellow.svg',
+		import.meta.url
+	).href;
+	const menuIconArt = new URL(
+		'../../components/art/svg_components_bundle/menu_icon.svg',
 		import.meta.url
 	).href;
 </script>
@@ -44,15 +48,24 @@
 
 	<div class="board-art-shell" aria-hidden="true">
 		<img class="board-frame-open" src={frameOpenArt} alt="" draggable="false" />
-		<img class="board-frame-bevel" src={frameInnerBevelArt} alt="" draggable="false" />
-
+		<div class="board-cloth-bed">
+			<div class="board-cloth-left"></div>
+			<div class="board-cloth-right"></div>
+		</div>
 		<div class="board-grid-bed">
 			<img class="board-grid-left" src={gridLeftArt} alt="" draggable="false" />
 			<img class="board-grid-right" src={gridRightArt} alt="" draggable="false" />
 		</div>
 	</div>
 
-	<img class="hud-underlay" src={controlBarArt} alt="" draggable="false" />
+	<div class="hud-art-shell" aria-hidden="true">
+		<img class="hud-underlay" src={controlBarArt} alt="" draggable="false" />
+		<div class="hud-icon hud-icon-bonus"></div>
+		<div class="hud-icon hud-icon-spin"></div>
+		<div class="hud-icon hud-icon-quick"></div>
+		<div class="hud-icon hud-icon-auto"></div>
+		<div class="hud-icon hud-icon-menu"></div>
+	</div>
 
 	<DualWheelGame />
 </div>
@@ -63,31 +76,25 @@
 		min-height: 100vh;
 		overflow: hidden;
 		background: #040608;
-
 		--scene-ratio: 1.8257425743;
 		--scene-width: min(100vw, calc(100vh * var(--scene-ratio)));
 		--scene-height: calc(var(--scene-width) / var(--scene-ratio));
 		--scene-top: calc((100vh - var(--scene-height)) * 0.5);
-
-		--board-width: calc(var(--scene-width) * 0.34273);
-		--board-height: calc(var(--board-width) * 1.31962);
+		--board-width: calc(var(--scene-width) * 0.3427);
+		--board-height: calc(var(--board-width) * 1.3196);
 		--board-top: calc(var(--scene-top) + var(--scene-height) * 0.015);
-
-		--grid-width: calc(var(--scene-width) * 0.26681);
-		--grid-height: calc(var(--grid-width) * 1.27079);
-		--grid-top: calc(var(--scene-top) + var(--scene-height) * 0.1435);
-
-		--hud-width: calc(var(--scene-width) * 0.39262);
-		--hud-height: calc(var(--hud-width) * 0.20994);
+		--grid-width: calc(var(--scene-width) * 0.2668);
+		--grid-height: calc(var(--grid-width) * 1.2708);
+		--grid-top-in-frame: 16.45%;
+		--grid-left-in-frame: 10.7%;
+		--hud-width: calc(var(--scene-width) * 0.3926);
+		--hud-height: calc(var(--hud-width) * 0.2099);
 		--hud-top: calc(var(--scene-top) + var(--scene-height) * 0.826);
 	}
 
 	.scene-underlay,
-	.hud-underlay,
 	.board-frame-open,
-	.board-frame-bevel,
-	.board-grid-left,
-	.board-grid-right {
+	.hud-underlay {
 		position: absolute;
 		left: 50%;
 		transform: translateX(-50%);
@@ -113,58 +120,129 @@
 		pointer-events: none;
 	}
 
-	.board-frame-open,
-	.board-frame-bevel {
+	.board-frame-open {
 		left: 50%;
 		top: 0;
 		width: 100%;
 		height: auto;
 		transform: translateX(-50%);
+		z-index: 3;
 	}
 
-	.board-frame-bevel {
-		inset: auto 0 0 50%;
-		width: calc(100% - 2px);
-		opacity: 0.98;
+	.board-cloth-bed,
+	.board-grid-bed {
+		position: absolute;
+		left: var(--grid-left-in-frame);
+		top: var(--grid-top-in-frame);
+		width: 78.6%;
+		height: 74.9%;
+		border-radius: 12px;
+		overflow: hidden;
+	}
+
+	.board-cloth-bed {
+		display: flex;
+		z-index: 1;
+		box-shadow: inset 0 0 18px rgba(0, 0, 0, 0.28);
+	}
+
+	.board-cloth-left,
+	.board-cloth-right {
+		flex: 1 1 0;
+		height: 100%;
+	}
+
+	.board-cloth-left {
+		background:
+			radial-gradient(circle at 30% 22%, rgba(255, 201, 170, 0.18), transparent 34%),
+			radial-gradient(circle at 72% 74%, rgba(71, 8, 8, 0.28), transparent 38%),
+			linear-gradient(180deg, #8b281d 0%, #7a2017 22%, #67170f 62%, #55110d 100%);
+	}
+
+	.board-cloth-right {
+		background:
+			radial-gradient(circle at 72% 22%, rgba(193, 220, 255, 0.18), transparent 34%),
+			radial-gradient(circle at 28% 74%, rgba(8, 28, 71, 0.30), transparent 40%),
+			linear-gradient(180deg, #3b5b9a 0%, #315084 22%, #29436f 62%, #203256 100%);
 	}
 
 	.board-grid-bed {
-		position: absolute;
-		left: 50%;
-		top: calc(var(--board-height) * 0.165);
-		width: var(--grid-width);
-		height: var(--grid-height);
-		transform: translateX(-50%);
 		display: flex;
-		pointer-events: none;
-		overflow: hidden;
+		z-index: 2;
 	}
 
 	.board-grid-left,
 	.board-grid-right {
-		position: relative;
-		left: auto;
-		top: auto;
-		transform: none;
 		height: 100%;
-		width: auto;
+		width: 50%;
+		object-fit: fill;
+		display: block;
 	}
 
-	.board-grid-left {
-		width: 50.5%;
-		height: 100%;
-	}
-
-	.board-grid-right {
-		width: 49.5%;
-		height: 100%;
+	.hud-art-shell {
+		position: absolute;
+		left: 50%;
+		top: var(--hud-top);
+		width: var(--hud-width);
+		height: var(--hud-height);
+		transform: translateX(-50%);
+		pointer-events: none;
 	}
 
 	.hud-underlay {
-		top: var(--hud-top);
-		width: var(--hud-width);
+		top: 0;
+		width: 100%;
 		height: auto;
-		filter: drop-shadow(0 16px 24px rgba(0, 0, 0, 0.5));
+		filter: drop-shadow(0 16px 24px rgba(0,0,0,.5));
+	}
+
+	.hud-icon {
+		position: absolute;
+		background-repeat: no-repeat;
+		background-position: center;
+		background-size: contain;
+		opacity: 0.96;
+	}
+
+	.hud-icon-bonus {
+		left: 8.9%;
+		top: 53.5%;
+		width: 10.4%;
+		height: 30%;
+		background-image: url("${bonusIconArt}");
+	}
+
+	.hud-icon-spin {
+		left: 45.3%;
+		top: 28%;
+		width: 7.4%;
+		height: 40%;
+		background-image: url("${spinIconArt}");
+		background-size: 72% 72%;
+	}
+
+	.hud-icon-quick {
+		left: 79.5%;
+		top: 29%;
+		width: 6.5%;
+		height: 21%;
+		background-image: url("${lightningYellowArt}");
+	}
+
+	.hud-icon-auto {
+		left: 80.2%;
+		top: 59%;
+		width: 6%;
+		height: 22%;
+		background-image: url("${autospinIconArt}");
+	}
+
+	.hud-icon-menu {
+		left: 94.4%;
+		top: 56%;
+		width: 2.6%;
+		height: 10%;
+		background-image: url("${menuIconArt}");
 	}
 
 	:global(.throne-room-game-shell .game-shell) {
@@ -188,36 +266,51 @@
 	}
 
 	:global(.throne-room-game-shell .game-stage) {
-		display: grid;
-		place-items: center;
-		padding: calc(var(--scene-top) + 10px) 24px calc(var(--scene-top) + var(--scene-height) * 0.19);
+		display: block;
+		min-height: 100vh;
+		padding: 0;
 	}
 
 	:global(.throne-room-game-shell .feature-banner) {
-		margin-inline: auto;
+		position: absolute;
+		left: 50%;
+		top: calc(var(--scene-top) + 10px);
+		transform: translateX(-50%);
 		width: min(640px, calc(var(--scene-width) * 0.56));
+		z-index: 5;
 	}
 
 	:global(.throne-room-game-shell .board-frame) {
-		position: relative;
-		z-index: 1;
-		padding: 0 !important;
+		position: absolute;
+		left: 50%;
+		top: var(--board-top);
 		width: var(--board-width) !important;
+		height: var(--board-height);
 		min-width: var(--board-width) !important;
+		transform: translateX(-50%);
+		padding: 0 !important;
 		background: transparent !important;
 		border: 0 !important;
 		box-shadow: none !important;
+		z-index: 4;
 	}
 
 	:global(.throne-room-game-shell .board) {
+		position: absolute;
+		left: var(--grid-left-in-frame);
+		top: var(--grid-top-in-frame);
+		width: 78.6%;
+		height: 74.9%;
 		padding: 0 !important;
 		background: transparent !important;
 		box-shadow: none !important;
-		transform: translateY(calc(var(--scene-height) * 0.1435)) scale(0.638);
-		transform-origin: top center;
+		transform: none !important;
+		transform-origin: top left;
+		overflow: hidden;
+		clip-path: inset(0 round 12px);
 	}
 
-	:global(.throne-room-game-shell .cell) {
+	:global(.throne-room-game-shell .board .cell) {
 		background: transparent !important;
 		border: 0 !important;
 		box-shadow: none !important;
@@ -230,8 +323,8 @@
 	:global(.throne-room-game-shell .symbol-tile-shell),
 	:global(.throne-room-game-shell .wheel-tile-shell),
 	:global(.throne-room-game-shell .symbol-tile-shell-bonus) {
-		width: 72px;
-		height: 72px;
+		width: 64px;
+		height: 64px;
 	}
 
 	:global(.throne-room-game-shell .top-bar) {
@@ -246,6 +339,7 @@
 		background: transparent;
 		backdrop-filter: none;
 		pointer-events: none;
+		z-index: 5;
 	}
 
 	:global(.throne-room-game-shell .top-bar-stats) {
@@ -271,31 +365,31 @@
 		display: grid;
 		place-items: center;
 		height: 100%;
-		font-size: clamp(9px, 0.72vw, 13px);
+		font-size: clamp(10px, 0.72vw, 14px);
 		font-weight: 800;
 		color: #f2f2f2;
 		text-shadow: 0 1px 2px rgba(0, 0, 0, 0.82);
 	}
 
 	:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(1)) {
-		left: 5.2%;
-		top: 43.4%;
-		width: 26.5%;
-		height: 14%;
+		left: 10.8%;
+		top: 58.5%;
+		width: 18.5%;
+		height: 13%;
 	}
 
 	:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(2)) {
-		left: 58.2%;
-		top: 24.5%;
-		width: 14.2%;
-		height: 12.8%;
+		left: 59.6%;
+		top: 39.8%;
+		width: 12.5%;
+		height: 12%;
 	}
 
 	:global(.throne-room-game-shell .top-bar-stats .stat-pill:nth-child(3)) {
-		left: 55.6%;
-		top: 61.2%;
-		width: 23.1%;
-		height: 13.4%;
+		left: 56.8%;
+		top: 73.6%;
+		width: 17.8%;
+		height: 12.6%;
 	}
 
 	:global(.throne-room-game-shell .game-controls) {
@@ -311,6 +405,7 @@
 		backdrop-filter: none;
 		grid-template-columns: 1fr;
 		gap: 0;
+		z-index: 6;
 	}
 
 	:global(.throne-room-game-shell .controls-left),
@@ -322,26 +417,26 @@
 
 	:global(.throne-room-game-shell .controls-left) {
 		left: 55.2%;
-		top: 19.2%;
+		top: 18.8%;
 		width: 24.2%;
-		height: 17.6%;
+		height: 18%;
 	}
 
 	:global(.throne-room-game-shell .controls-center) {
-		left: 40.8%;
-		top: 3.4%;
-		width: 10.95%;
-		height: 50.8%;
+		left: 42.7%;
+		top: 11.2%;
+		width: 7.6%;
+		height: 34%;
 		transform: none;
 		justify-items: center;
 		margin-top: 0;
 	}
 
 	:global(.throne-room-game-shell .controls-right) {
-		left: 84.8%;
-		top: 16.1%;
-		width: 12.9%;
-		height: 45.4%;
+		left: 79.2%;
+		top: 25.8%;
+		width: 18%;
+		height: 46%;
 	}
 
 	:global(.throne-room-game-shell .bet-stepper) {
@@ -394,25 +489,12 @@
 		color: transparent;
 		box-shadow: none;
 		border: 0;
-		background:
-			center / 58% 58% no-repeat url("${spinIconArt}"),
-			radial-gradient(circle at 38% 28%, rgba(233, 247, 255, 0.96), rgba(171, 222, 255, 0.96) 34%, rgba(83, 166, 236, 0.98) 68%, rgba(33, 99, 174, 0.98) 100%);
+		background: transparent;
 	}
 
-	:global(.throne-room-game-shell .spin-button-stop) {
-		background:
-			center / 58% 58% no-repeat url("${spinIconArt}"),
-			linear-gradient(180deg, #ffc484, #f98f54 56%, #e55a2f 100%);
-	}
-
+	:global(.throne-room-game-shell .spin-button-stop),
 	:global(.throne-room-game-shell .spin-button-skip) {
-		background:
-			center / 58% 58% no-repeat url("${spinIconArt}"),
-			linear-gradient(180deg, #c2e8ff, #6fc4ff 56%, #37a2f5 100%);
-	}
-
-	:global(.throne-room-game-shell .status-text) {
-		display: none;
+		background: transparent;
 	}
 
 	:global(.throne-room-game-shell .toggle-row) {
@@ -439,20 +521,18 @@
 	}
 
 	:global(.throne-room-game-shell .toggle-row .toggle-button:first-child) {
-		left: 18.5%;
-		top: 0;
-		width: 73.5%;
-		height: 34.5%;
-		background: center / 34% 70% no-repeat url("${lightningYellowArt}");
+		left: 4%;
+		top: 52%;
+		width: 16%;
+		height: 28%;
 	}
 
 	:global(.throne-room-game-shell .toggle-row .toggle-button:last-child) {
-		left: 0;
-		top: 51.5%;
-		width: 100%;
-		height: 45%;
+		left: 80%;
+		top: 56%;
+		width: 7%;
+		height: 23%;
 		margin-top: 0;
-		background: center / 32% 68% no-repeat url("${autospinIconArt}");
 	}
 
 	@media (max-width: 1200px) {
@@ -466,8 +546,15 @@
 			--scene-width: min(100vw, calc(100vh * 1.58));
 		}
 
-		:global(.throne-room-game-shell .board) {
-			transform: translateY(calc(var(--scene-height) * 0.1435)) scale(0.57);
+		:global(.throne-room-game-shell .symbol-art),
+		:global(.throne-room-game-shell .symbol-art-sheet),
+		:global(.throne-room-game-shell .wheel-tile-art),
+		:global(.throne-room-game-shell .scatter-symbol),
+		:global(.throne-room-game-shell .symbol-tile-shell),
+		:global(.throne-room-game-shell .wheel-tile-shell),
+		:global(.throne-room-game-shell .symbol-tile-shell-bonus) {
+			width: 56px;
+			height: 56px;
 		}
 	}
 </style>
