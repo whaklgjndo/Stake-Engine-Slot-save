@@ -64,8 +64,8 @@
 
 	.background { inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 0; }
 	.banner { left: 35.03%; top: 12.87%; width: 23.10%; z-index: 1; }
-	.grid { left: 34.82%; top: 14.06%; width: 24.30%; z-index: 2; }
-	.frame { left: 32.54%; top: 2.18%; width: 30.15%; z-index: 3; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.18)); }
+	.grid { left: 34.82%; top: 14.06%; width: 24.30%; z-index: 3; }
+	.frame { left: 32.54%; top: 2.18%; width: 30.15%; z-index: 4; filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.18)); }
 	.bar { left: 39.57%; top: 87.58%; width: 19.26%; z-index: 4; filter: drop-shadow(0 6px 8px rgba(0, 0, 0, 0.18)); }
 
 	.controls-art {
@@ -85,7 +85,13 @@
 	.controls-art .autospin { left: 83%; top: 63%; width: 11%; transform: translate(-50%, -50%); }
 	.controls-art .lightning { left: 92%; top: 62%; width: 7%; transform: translate(-50%, -50%); }
 
-	:global(.throne-room-shell .game-shell) { background: transparent; min-height: 100%; }
+	:global(.throne-room-shell .game-shell) {
+		position: absolute;
+		inset: 0;
+		background: transparent;
+		min-height: 100%;
+	}
+
 	:global(.throne-room-shell .theme-backdrop),
 	:global(.throne-room-shell .top-bar-brand),
 	:global(.throne-room-shell .frame-velvet),
@@ -93,34 +99,51 @@
 	:global(.throne-room-shell .frame-scroll),
 	:global(.throne-room-shell .board::before),
 	:global(.throne-room-shell .board::after),
-	:global(.throne-room-shell .bonus-buy-row),
 	:global(.throne-room-shell .status-text),
 	:global(.throne-room-shell .autoplay-select),
-	:global(.throne-room-shell .autoplay-label),
-	:global(.throne-room-shell .info-button) { display: none !important; }
+	:global(.throne-room-shell .autoplay-label) {
+		display: none !important;
+	}
 
-	:global(.throne-room-shell .game-stage) { position: absolute; inset: 0; display: block; min-height: 0; padding: 0; }
-	:global(.throne-room-shell .feature-banner) { position: absolute; left: 50%; top: 1.6%; transform: translateX(-50%); width: 48%; z-index: 8; }
+	:global(.throne-room-shell .game-stage) {
+		position: absolute;
+		inset: 0;
+		display: block;
+		min-height: 0;
+		padding: 0;
+	}
 
+	:global(.throne-room-shell .feature-banner) {
+		position: absolute;
+		left: 50%;
+		top: 1.6%;
+		transform: translateX(-50%);
+		width: 48%;
+		z-index: 12;
+	}
+
+	/* live board mounted to exported grid rectangle: 568x568 native board content */
 	:global(.throne-room-shell .board-frame) {
 		position: absolute;
 		left: 34.82%;
 		top: 14.06%;
-		width: 580px !important;
-		height: 580px;
-		min-width: 580px !important;
+		width: 568px !important;
+		height: 568px;
+		min-width: 568px !important;
 		padding: 0 !important;
 		background: transparent !important;
 		border: 0 !important;
 		box-shadow: none !important;
 		transform-origin: top left;
-		transform: scale(0.3863);
-		z-index: 6;
+		transform: scale(0.3947);
+		z-index: 2;
 	}
 
 	:global(.throne-room-shell .board) {
 		position: relative;
-		padding: 6px !important;
+		width: 568px;
+		height: 568px;
+		padding: 0 !important;
 		background: transparent !important;
 		box-shadow: none !important;
 		transform: none !important;
@@ -129,14 +152,22 @@
 		clip-path: inset(0 round 8px);
 	}
 
-	:global(.throne-room-shell .board .cell) { background: transparent !important; border: 0 !important; box-shadow: none !important; }
+	:global(.throne-room-shell .board .cell) {
+		background: transparent !important;
+		border: 0 !important;
+		box-shadow: none !important;
+	}
+
 	:global(.throne-room-shell .symbol-art),
 	:global(.throne-room-shell .symbol-art-sheet),
 	:global(.throne-room-shell .wheel-tile-art),
 	:global(.throne-room-shell .scatter-symbol),
 	:global(.throne-room-shell .symbol-tile-shell),
 	:global(.throne-room-shell .wheel-tile-shell),
-	:global(.throne-room-shell .symbol-tile-shell-bonus) { width: 64px; height: 64px; }
+	:global(.throne-room-shell .symbol-tile-shell-bonus) {
+		width: 70px;
+		height: 70px;
+	}
 
 	:global(.throne-room-shell .top-bar) {
 		position: absolute;
@@ -149,16 +180,37 @@
 		background: transparent;
 		backdrop-filter: none;
 		pointer-events: none;
-		z-index: 7;
+		z-index: 8;
 	}
 
-	:global(.throne-room-shell .top-bar-stats) { position: absolute; inset: 0; display: block; }
-	:global(.throne-room-shell .stat-pill) { position: absolute; padding: 0; border: 0; background: transparent; box-shadow: none; text-align: center; }
+	:global(.throne-room-shell .top-bar-stats) {
+		position: absolute;
+		inset: 0;
+		display: block;
+	}
+
+	:global(.throne-room-shell .stat-pill) {
+		position: absolute;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		box-shadow: none;
+		text-align: center;
+	}
+
 	:global(.throne-room-shell .stat-pill span) { display: none; }
-	:global(.throne-room-shell .stat-pill strong) { display: grid; place-items: center; height: 100%; font-size: clamp(9px, 0.72vw, 13px); font-weight: 800; color: #f2f2f2; text-shadow: 0 1px 2px rgba(0,0,0,.82); }
-	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(1)) { left: 11%; top: 58%; width: 18%; height: 13%; }
-	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(2)) { left: 59.5%; top: 40%; width: 12%; height: 12%; }
-	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(3)) { left: 56.5%; top: 73.5%; width: 18%; height: 12.5%; }
+	:global(.throne-room-shell .stat-pill strong) {
+		display: grid;
+		place-items: center;
+		height: 100%;
+		font-size: clamp(9px, 0.72vw, 13px);
+		font-weight: 800;
+		color: #f2f2f2;
+		text-shadow: 0 1px 2px rgba(0,0,0,.82);
+	}
+	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(1)) { left: 9.5%; top: 58%; width: 23%; height: 13%; }
+	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(2)) { left: 58.5%; top: 39%; width: 14%; height: 12%; }
+	:global(.throne-room-shell .top-bar-stats .stat-pill:nth-child(3)) { left: 55%; top: 73%; width: 20%; height: 12.5%; }
 
 	:global(.throne-room-shell .game-controls) {
 		position: absolute;
@@ -172,37 +224,110 @@
 		backdrop-filter: none;
 		grid-template-columns: 1fr;
 		gap: 0;
-		z-index: 8;
+		z-index: 9;
 	}
 
 	:global(.throne-room-shell .controls-left),
 	:global(.throne-room-shell .controls-center),
-	:global(.throne-room-shell .controls-right) { position: absolute; gap: 0; }
+	:global(.throne-room-shell .controls-right) {
+		position: absolute;
+		gap: 0;
+	}
+
 	:global(.throne-room-shell .controls-left) { left: 0; top: 0; width: 100%; height: 100%; }
-	:global(.throne-room-shell .controls-center) { left: 36%; top: 7%; width: 30%; height: 44%; transform: none; justify-items: center; margin-top: 0; }
-	:global(.throne-room-shell .controls-right) { left: 64%; top: 50%; width: 32%; height: 20%; }
-	:global(.throne-room-shell .bet-stepper) { position: absolute; left: 42%; top: 49%; width: 17%; height: 10%; display: block; }
+	:global(.throne-room-shell .controls-center) { left: 37.2%; top: 5%; width: 28%; height: 48%; transform: none; justify-items: center; margin-top: 0; }
+	:global(.throne-room-shell .controls-right) { left: 77%; top: 50%; width: 18%; height: 22%; }
+
+	:global(.throne-room-shell .bet-stepper) {
+		position: absolute;
+		left: 64%;
+		top: 55%;
+		width: 7%;
+		height: 14%;
+		display: block;
+	}
+
 	:global(.throne-room-shell .bet-display) { display: none; }
-	:global(.throne-room-shell .bet-stepper .ctrl-button:first-child) { position: absolute; left: 0; top: 0; width: 18%; height: 100%; padding: 0; border-radius: 999px; }
-	:global(.throne-room-shell .bet-stepper .ctrl-button:last-child) { position: absolute; right: 0; top: 0; width: 18%; height: 100%; padding: 0; border-radius: 999px; }
+	:global(.throne-room-shell .bet-stepper .ctrl-button:first-child) { position: absolute; left: -22%; top: 0; width: 36%; height: 100%; padding: 0; border-radius: 999px; }
+	:global(.throne-room-shell .bet-stepper .ctrl-button:last-child) { position: absolute; right: -22%; top: 0; width: 36%; height: 100%; padding: 0; border-radius: 999px; }
 	:global(.throne-room-shell .ctrl-button) { padding: 0; border: 0; background: transparent; font-size: 0; box-shadow: none; }
 	:global(.throne-room-shell .ctrl-button:hover:enabled) { transform: none; }
-	:global(.throne-room-shell .spin-button) { width: 100%; height: 100%; margin-top: 0; font-size: 0; color: transparent; box-shadow: none; border: 0; background: transparent; }
-	:global(.throne-room-shell .spin-button-stop), :global(.throne-room-shell .spin-button-skip) { background: transparent; }
-	:global(.throne-room-shell .toggle-row) { position: absolute; inset: 0; display: block; }
-	:global(.throne-room-shell .toggle-button) { position: absolute; padding: 0; background: transparent; border: 0; border-radius: 8px; font-size: 0; color: transparent; line-height: 0; box-shadow: none; }
+
+	:global(.throne-room-shell .bonus-buy-row) {
+		position: absolute;
+		left: 16%;
+		top: 54%;
+		width: 18%;
+		height: 28%;
+		display: block;
+	}
+	:global(.throne-room-shell .bonus-buy-button-super) { display: none !important; }
+	:global(.throne-room-shell .bonus-buy-button-regular) {
+		position: absolute;
+		inset: 0;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		font-size: 0;
+		box-shadow: none;
+	}
+	:global(.throne-room-shell .bonus-buy-button-regular span),
+	:global(.throne-room-shell .bonus-buy-button-regular strong) { display: none !important; }
+
+	:global(.throne-room-shell .spin-button) {
+		width: 100%;
+		height: 100%;
+		margin-top: 0;
+		font-size: 0;
+		color: transparent;
+		box-shadow: none;
+		border: 0;
+		background: transparent;
+	}
+	:global(.throne-room-shell .spin-button-stop),
+	:global(.throne-room-shell .spin-button-skip) { background: transparent; }
+
+	:global(.throne-room-shell .toggle-row) {
+		position: absolute;
+		inset: 0;
+		display: block;
+	}
+	:global(.throne-room-shell .toggle-button) {
+		position: absolute;
+		padding: 0;
+		background: transparent;
+		border: 0;
+		border-radius: 8px;
+		font-size: 0;
+		color: transparent;
+		line-height: 0;
+		box-shadow: none;
+	}
 	:global(.throne-room-shell .toggle-button > *) { font-size: 0 !important; color: transparent !important; }
-	:global(.throne-room-shell .toggle-row .toggle-button:first-child) { left: 16%; top: 50%; width: 18%; height: 28%; }
-	:global(.throne-room-shell .toggle-row .toggle-button:last-child) { left: 78%; top: 52%; width: 12%; height: 26%; margin-top: 0; }
+	:global(.throne-room-shell .toggle-row .toggle-button:first-child) { left: 78.5%; top: 52%; width: 13%; height: 28%; }
+	:global(.throne-room-shell .toggle-row .toggle-button:last-child) { left: 87.5%; top: 51%; width: 8%; height: 28%; margin-top: 0; }
+
+	:global(.throne-room-shell .info-button) {
+		position: absolute;
+		left: 5.5%;
+		top: 57%;
+		width: 8%;
+		height: 20%;
+		padding: 0;
+		border: 0;
+		background: transparent;
+		font-size: 0;
+		box-shadow: none;
+	}
 
 	@media (max-width: 960px) {
-		:global(.throne-room-shell .board-frame) { transform: scale(0.33); }
+		:global(.throne-room-shell .board-frame) { transform: scale(0.34); }
 		:global(.throne-room-shell .symbol-art),
 		:global(.throne-room-shell .symbol-art-sheet),
 		:global(.throne-room-shell .wheel-tile-art),
 		:global(.throne-room-shell .scatter-symbol),
 		:global(.throne-room-shell .symbol-tile-shell),
 		:global(.throne-room-shell .wheel-tile-shell),
-		:global(.throne-room-shell .symbol-tile-shell-bonus) { width: 56px; height: 56px; }
+		:global(.throne-room-shell .symbol-tile-shell-bonus) { width: 60px; height: 60px; }
 	}
 </style>
