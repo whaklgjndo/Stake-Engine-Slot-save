@@ -20,10 +20,7 @@
 
 		<div class="board-anchor" aria-hidden="true">
 			<img class="board-frame-layer" src={frameOpenArt} alt="" draggable="false" />
-			<div class="board-bed-layer">
-				<img class="board-bed-left" src={gridLeftArt} alt="" draggable="false" />
-				<img class="board-bed-right" src={gridRightArt} alt="" draggable="false" />
-			</div>
+			<div class="board-cloth-layer"></div>
 			<img class="board-grid-layer" src={frameInnerBevelArt} alt="" draggable="false" />
 		</div>
 
@@ -56,8 +53,6 @@
 		aspect-ratio: 922 / 505;
 		transform: translate(-50%, -50%);
 		isolation: isolate;
-		--stage-w: 100%;
-		--stage-h: 100%;
 	}
 
 	.scene-layer,
@@ -70,7 +65,11 @@
 		user-select: none;
 	}
 
-	.scene-layer { inset: 0; width: 100%; height: 100%; }
+	.scene-layer {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
 
 	.board-anchor {
 		position: absolute;
@@ -82,27 +81,28 @@
 	}
 
 	.board-frame-layer,
-	.board-grid-layer { inset: 0; width: 100%; height: 100%; }
+	.board-grid-layer {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
+
 	.board-frame-layer { z-index: 1; }
 	.board-grid-layer { z-index: 3; }
 
-	.board-bed-layer {
+	.board-cloth-layer {
 		position: absolute;
 		left: 11.4%;
 		top: 13.9%;
 		width: 77.2%;
 		height: 73.4%;
-		display: flex;
-		overflow: hidden;
 		z-index: 2;
-	}
-
-	.board-bed-left,
-	.board-bed-right {
-		display: block;
-		height: 100%;
-		width: 50%;
-		object-fit: fill;
+		border-radius: 10px;
+		overflow: hidden;
+		background-image: url("${gridLeftArt}"), url("${gridRightArt}");
+		background-position: left top, right top;
+		background-size: 50% 100%, 50% 100%;
+		background-repeat: no-repeat, no-repeat;
 	}
 
 	.footer-anchor {
@@ -114,7 +114,11 @@
 		pointer-events: none;
 	}
 
-	.footer-layer { inset: 0; width: 100%; height: 100%; }
+	.footer-layer {
+		inset: 0;
+		width: 100%;
+		height: 100%;
+	}
 
 	.footer-icon {
 		position: absolute;
@@ -167,7 +171,6 @@
 		z-index: 8;
 	}
 
-	/* Native live board dimensions: 580 x 580 including board shell padding */
 	:global(.throne-room-shell .board-frame) {
 		position: absolute;
 		left: 36.78%;
