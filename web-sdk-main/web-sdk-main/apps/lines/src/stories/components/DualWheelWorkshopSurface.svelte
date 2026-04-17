@@ -1,5 +1,5 @@
 <script lang="ts">
-	import DualWheelWorkshop from './DualWheelWorkshop.svelte';
+	import DualWheelWorkshopCore from './DualWheelWorkshopCore.svelte';
 
 	const sceneHallArt = new URL('../../components/art/svg_components_bundle/scene_hall.svg', import.meta.url).href;
 	const frameOpenArt = new URL('../../components/art/svg_components_bundle/frame_open.svg', import.meta.url).href;
@@ -35,7 +35,7 @@
 			<img class="control-icon lightning" src={lightningYellowArt} alt="" draggable="false" />
 		</div>
 
-		<DualWheelWorkshop />
+		<DualWheelWorkshopCore />
 	</div>
 </div>
 
