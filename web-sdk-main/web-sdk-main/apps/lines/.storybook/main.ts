@@ -3,7 +3,7 @@ import { dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const config: StorybookConfig = {
-	stories: ['../src/stories/Prototype*.stories.@(js|ts)', '../src/stories/DualWheelGame.stories.@(js|ts)'],
+	stories: ['../src/stories/slot/**/*.stories.@(js|ts)'],
 	addons: [getAbsolutePath('@storybook/addon-docs')],
 	framework: {
 		name: '@storybook/sveltekit',
