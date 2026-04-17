@@ -1,0 +1,242 @@
+:root {
+  color-scheme: dark;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  background:
+    radial-gradient(circle at top, rgba(255, 196, 85, 0.18), transparent 34%),
+    linear-gradient(180deg, #07111f 0%, #05080f 100%);
+  color: #e9edf6;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#app {
+  margin: 0;
+  min-height: 100%;
+}
+
+body {
+  min-height: 100vh;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+img,
+svg {
+  max-width: 100%;
+}
+
+.app-shell {
+  width: min(1180px, calc(100vw - 32px));
+  margin: 0 auto;
+  padding: 32px 0 56px;
+}
+
+.hero-card,
+.manifest-card {
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  background: rgba(8, 12, 20, 0.82);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 22px 80px rgba(0, 0, 0, 0.45);
+  border-radius: 28px;
+}
+
+.hero-card {
+  display: grid;
+  gap: 28px;
+  grid-template-columns: minmax(280px, 1.1fr) minmax(320px, 1fr);
+  padding: 32px;
+}
+
+.hero-copy {
+  display: grid;
+  align-content: center;
+  gap: 18px;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #9ab0d5;
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+}
+
+h1,
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+h1 {
+  font-size: clamp(2rem, 4vw, 3.5rem);
+  line-height: 1.02;
+  letter-spacing: -0.04em;
+}
+
+h2 {
+  font-size: clamp(1.4rem, 2.2vw, 2rem);
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.lede {
+  max-width: 58ch;
+  color: #c6d0e6;
+}
+
+.stage-preview {
+  display: grid;
+  place-items: center;
+}
+
+.stage-canvas {
+  position: relative;
+  width: min(100%, 460px);
+  aspect-ratio: 0.96;
+  border-radius: 24px;
+  overflow: hidden;
+  background: linear-gradient(180deg, rgba(11, 17, 29, 0.4), rgba(11, 17, 29, 0.9));
+}
+
+.layer {
+  position: absolute;
+}
+
+.backdrop {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.scene {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -30%);
+  width: 86%;
+  height: auto;
+  opacity: 0.96;
+  filter: saturate(1.08);
+}
+
+.frame {
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  width: 58%;
+  height: auto;
+}
+
+.control-bar {
+  left: 50%;
+  top: 7%;
+  transform: translateX(-50%);
+}
+
+.spin-button {
+  right: 12%;
+  bottom: 10%;
+}
+
+.refresh {
+  left: 13%;
+  bottom: 10%;
+}
+
+.badge {
+  left: 12%;
+  top: 10%;
+}
+
+.bolt {
+  bottom: 13%;
+}
+
+.bolt-gold {
+  right: 31%;
+}
+
+.bolt-silver {
+  right: 24%;
+}
+
+.menu-toggle {
+  right: 6%;
+  top: 11%;
+}
+
+.status-gem {
+  left: 49%;
+  top: 12%;
+}
+
+.manifest-card {
+  margin-top: 24px;
+  padding: 28px;
+}
+
+.manifest-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 14px;
+  margin-top: 20px;
+}
+
+.manifest-item {
+  min-height: 110px;
+  display: grid;
+  align-content: space-between;
+  gap: 10px;
+  padding: 16px;
+  border-radius: 18px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.manifest-item h3 {
+  font-size: 1rem;
+}
+
+.manifest-item p,
+.manifest-item code {
+  color: #adc0e4;
+  font-size: 0.9rem;
+}
+
+.manifest-item code {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 900px) {
+  .hero-card {
+    grid-template-columns: 1fr;
+  }
+
+  .app-shell {
+    width: min(100vw - 24px, 1180px);
+    padding-top: 20px;
+  }
+
+  .hero-card,
+  .manifest-card {
+    padding: 22px;
+    border-radius: 24px;
+  }
+}
