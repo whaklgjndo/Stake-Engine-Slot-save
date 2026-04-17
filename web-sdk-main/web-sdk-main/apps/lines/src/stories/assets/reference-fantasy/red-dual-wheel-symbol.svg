@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title>Red Wheel</title>
+  <desc>Red Wheel medallion wheel symbol.</desc>
+  <defs>
+    <radialGradient id="disc" cx="50%" cy="42%" r="58%">
+      <stop offset="0%" stop-color="#8e2018"/>
+      <stop offset="100%" stop-color="#36110d"/>
+    </radialGradient>
+    <radialGradient id="hub" cx="42%" cy="35%" r="65%">
+      <stop offset="0%" stop-color="#eff5ff"/>
+      <stop offset="52%" stop-color="#909bad"/>
+      <stop offset="100%" stop-color="#2f3b4e"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#f6dea0"/>
+      <stop offset="40%" stop-color="#c89435"/>
+      <stop offset="100%" stop-color="#7b4e16"/>
+    </linearGradient>
+    <filter id="softGlow" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="6" result="blur"/>
+      <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>
+  <rect width="256" height="256" rx="36" fill="#0a1019"/>
+  <rect x="8" y="8" width="240" height="240" rx="30" fill="none" stroke="#ffb77c" stroke-opacity="0.32" stroke-width="3"/>
+  <g filter="url(#softGlow)">
+    <rect x="34" y="34" width="188" height="188" rx="22" fill="url(#disc)" stroke="url(#rim)" stroke-width="8"/>
+    <circle cx="128" cy="128" r="68" fill="none" stroke="#4a221f" stroke-width="8"/>
+    <circle cx="128" cy="128" r="42" fill="url(#hub)" stroke="#dce6f7" stroke-opacity="0.6" stroke-width="5"/>
+    <path d="M128 84v88M84 128h88M98 98l60 60M158 98l-60 60" stroke="#e9d7cf" stroke-opacity="0.45" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="128" cy="128" r="10" fill="#eef5ff"/>
+    <circle cx="128" cy="52" r="10" fill="#df3d28" stroke="url(#rim)" stroke-width="4"/>
+    <circle cx="128" cy="204" r="10" fill="#df3d28" stroke="url(#rim)" stroke-width="4"/>
+    <circle cx="52" cy="128" r="10" fill="#df3d28" stroke="url(#rim)" stroke-width="4"/>
+    <circle cx="204" cy="128" r="10" fill="#df3d28" stroke="url(#rim)" stroke-width="4"/>
+    <circle cx="74" cy="74" r="8" fill="#df3d28" stroke="url(#rim)" stroke-width="3"/>
+    <circle cx="182" cy="74" r="8" fill="#df3d28" stroke="url(#rim)" stroke-width="3"/>
+    <circle cx="74" cy="182" r="8" fill="#df3d28" stroke="url(#rim)" stroke-width="3"/>
+    <circle cx="182" cy="182" r="8" fill="#df3d28" stroke="url(#rim)" stroke-width="3"/>
+  </g>
+</svg>
