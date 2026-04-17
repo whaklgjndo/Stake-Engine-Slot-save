@@ -3,7 +3,8 @@
 
 	const sceneHallArt = new URL('../../components/art/svg_components_bundle/scene_hall.svg', import.meta.url).href;
 	const frameOpenArt = new URL('../../components/art/svg_components_bundle/frame_open.svg', import.meta.url).href;
-	const bannerArt = new URL('../../components/art/svg_components_bundle/banner.svg', import.meta.url).href;
+	const bannerLeftArt = new URL('../../components/art/svg_components_bundle/banner_left.svg', import.meta.url).href;
+	const bannerRightArt = new URL('../../components/art/svg_components_bundle/banner_right.svg', import.meta.url).href;
 	const gridArt = new URL('../../components/art/svg_components_bundle/grid_left.svg', import.meta.url).href;
 	const controlBarArt = new URL('../../components/art/svg_components_bundle/control_bar.svg', import.meta.url).href;
 	const spinIconArt = new URL('../../components/art/svg_components_bundle/spin_icon.svg', import.meta.url).href;
@@ -17,7 +18,10 @@
 <div class="workshop-surface-shell">
 	<div class="design-stage">
 		<img class="layer background" src={sceneHallArt} alt="" draggable="false" />
-		<img class="layer banner" src={bannerArt} alt="" draggable="false" />
+		<div class="layer cloth" aria-hidden="true">
+			<img class="cloth-half cloth-half-left" src={bannerLeftArt} alt="" draggable="false" />
+			<img class="cloth-half cloth-half-right" src={bannerRightArt} alt="" draggable="false" />
+		</div>
 		<img class="layer grid" src={gridArt} alt="" draggable="false" />
 		<img class="layer frame" src={frameOpenArt} alt="" draggable="false" />
 		<img class="layer bar" src={controlBarArt} alt="" draggable="false" />
@@ -53,7 +57,8 @@
 	}
 
 	.layer,
-	.control-icon {
+	.control-icon,
+	.cloth-half {
 		position: absolute;
 		display: block;
 		max-width: none;
@@ -63,7 +68,16 @@
 	}
 
 	.background { inset: 0; width: 100%; height: 100%; object-fit: contain; z-index: 0; }
-	.banner { left: 35.03%; top: 12.87%; width: 23.10%; z-index: 1; }
+	.cloth {
+		left: 35.03%;
+		top: 12.87%;
+		width: 23.10%;
+		height: 61.78%;
+		z-index: 1;
+		overflow: hidden;
+	}
+	.cloth-half-left { left: 0; top: 0; width: 49.2%; height: 100%; object-fit: fill; }
+	.cloth-half-right { right: 0; top: 0; width: 50.8%; height: 100%; object-fit: fill; }
 	.grid { left: 34.82%; top: 14.06%; width: 24.30%; z-index: 3; }
 	.frame { left: 32.54%; top: 2.18%; width: 30.15%; z-index: 4; }
 	.bar { left: 39.57%; top: 87.58%; width: 19.26%; z-index: 4; }
