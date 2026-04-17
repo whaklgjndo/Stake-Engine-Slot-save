@@ -1,13 +1,13 @@
 import type { Meta, StoryObj } from '@storybook/sveltekit';
-import ArtBoardRuntime from '../components/ArtBoardRuntime.svelte';
+import ThemeGalleryStory from './ThemeGalleryStory.svelte';
 
 const meta = {
-	title: 'Lines/Art Board Runtime',
-	component: ArtBoardRuntime,
+	title: 'Slot/Theme Gallery',
+	component: ThemeGalleryStory,
 	parameters: {
 		layout: 'fullscreen',
 	},
-} satisfies Meta<ArtBoardRuntime>;
+} satisfies Meta<ThemeGalleryStory>;
 
 export default meta;
 

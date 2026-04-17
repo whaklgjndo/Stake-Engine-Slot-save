@@ -1,0 +1,92 @@
+[
+  {
+    "name": "scene_hall",
+    "file": "scene_hall.svg",
+    "width": 922,
+    "height": 505
+  },
+  {
+    "name": "frame_open",
+    "file": "frame_open.svg",
+    "width": 316,
+    "height": 417
+  },
+  {
+    "name": "frame_inner_bevel",
+    "file": "frame_inner_bevel.svg",
+    "width": 315,
+    "height": 408
+  },
+  {
+    "name": "grid_left",
+    "file": "grid_left.svg",
+    "width": 249,
+    "height": 312
+  },
+  {
+    "name": "grid_right",
+    "file": "grid_right.svg",
+    "width": 244,
+    "height": 316
+  },
+  {
+    "name": "banner_left",
+    "file": "banner_left.svg",
+    "width": 225,
+    "height": 296
+  },
+  {
+    "name": "banner_right",
+    "file": "banner_right.svg",
+    "width": 234,
+    "height": 303
+  },
+  {
+    "name": "control_bar",
+    "file": "control_bar.svg",
+    "width": 362,
+    "height": 76
+  },
+  {
+    "name": "spin_icon",
+    "file": "spin_icon.svg",
+    "width": 56,
+    "height": 58
+  },
+  {
+    "name": "lightning_yellow",
+    "file": "lightning_yellow.svg",
+    "width": 40,
+    "height": 35
+  },
+  {
+    "name": "lightning_gray",
+    "file": "lightning_gray.svg",
+    "width": 30,
+    "height": 34
+  },
+  {
+    "name": "autospin_icon",
+    "file": "autospin_icon.svg",
+    "width": 33,
+    "height": 35
+  },
+  {
+    "name": "menu_icon",
+    "file": "menu_icon.svg",
+    "width": 14,
+    "height": 15
+  },
+  {
+    "name": "chevrons_icon",
+    "file": "chevrons_icon.svg",
+    "width": 9,
+    "height": 18
+  },
+  {
+    "name": "bonus_icon",
+    "file": "bonus_icon.svg",
+    "width": 33,
+    "height": 33
+  }
+]
