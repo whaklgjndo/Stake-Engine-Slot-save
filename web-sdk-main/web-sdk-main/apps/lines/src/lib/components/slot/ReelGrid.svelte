@@ -40,16 +40,16 @@
 
 	const rowSize = 96;
 	const spinningPool = $derived(Object.keys(theme.symbolMap) as SymbolId[]);
+	const reelCountValue = $derived(reelCount);
+	const visibleRowsValue = $derived(visibleRows);
 	const columns = $derived(
-		Array.from({ length: reelCount }, (_, columnIndex) =>
-			Array.from({ length: visibleRows }, (_, rowIndex) => symbolsMatrix[rowIndex]?.[columnIndex] ?? 'low1'),
+		Array.from({ length: reelCountValue }, (_, columnIndex) =>
+			Array.from({ length: visibleRowsValue }, (_, rowIndex) => symbolsMatrix[rowIndex]?.[columnIndex] ?? 'low1'),
 		),
 	);
 
 	let previousSpinning = $state<boolean[]>([]);
-	let reelTracks = $state<ReelRuntime[]>(
-		Array.from({ length: reelCount }, (_, index) => createIdleRuntime(columns[index] ?? [])),
-	);
+	let reelTracks = $state<ReelRuntime[]>([]);
 
 	const winningKeySet = $derived(
 		new Set(
@@ -70,7 +70,7 @@
 	function createLoopTrack(seed: SymbolId[] = []): SymbolId[] {
 		const items: SymbolId[] = [];
 
-		for (let index = 0; index < visibleRows * 5; index += 1) {
+		for (let index = 0; index < visibleRowsValue * 5; index += 1) {
 			const previous = items[index - 1] ?? seed[index % seed.length] ?? 'low1';
 			items.push(randomSymbol(previous));
 		}
@@ -129,6 +129,7 @@
 	function startLoop(index: number): void {
 		stopLoop(index);
 		const runtime = reelTracks[index];
+		if (!runtime) return;
 		runtime.items = createLoopTrack(columns[index]);
 		runtime.phase = 'spinning';
 		runtime.blur = 6;
@@ -146,7 +147,7 @@
 					? performance.now()
 					: Date.now()) - current.startedAt;
 			const baseSpeed = 0.9 + index * 0.08;
-			const distance = (elapsed * baseSpeed) % (rowSize * visibleRows);
+			const distance = (elapsed * baseSpeed) % (rowSize * visibleRowsValue);
 
 			current.offset = -distance;
 			current.blur = 5.4 + Math.sin(elapsed / 120) * 0.8;
@@ -197,17 +198,17 @@
 	}
 
 	$effect(() => {
-		if (reelTracks.length !== reelCount) {
-			reelTracks = Array.from({ length: reelCount }, (_, index) => createIdleRuntime(columns[index] ?? []));
-		}
+		const targetCount = reelCountValue;
 
-		if (!previousSpinning.length) {
+		if (!previousSpinning.length || reelTracks.length !== targetCount) {
 			previousSpinning = [...isSpinning];
-			reelTracks = Array.from({ length: reelCount }, (_, index) => createIdleRuntime(columns[index] ?? []));
+			reelTracks = Array.from({ length: targetCount }, (_, index) =>
+				createIdleRuntime(columns[index] ?? []),
+			);
 			return;
 		}
 
-		for (let index = 0; index < reelCount; index += 1) {
+		for (let index = 0; index < targetCount; index += 1) {
 			const current = Boolean(isSpinning[index]);
 			const previous = Boolean(previousSpinning[index]);
 
@@ -219,10 +220,6 @@
 				setTimeout(() => {
 					void landReel(index, columns[index] ?? []);
 				}, index * (staggerDelay / 2));
-			}
-
-			if (!current && !previous && reelTracks[index]?.phase === 'idle') {
-				reelTracks[index] = createIdleRuntime(columns[index] ?? []);
 			}
 		}
 
