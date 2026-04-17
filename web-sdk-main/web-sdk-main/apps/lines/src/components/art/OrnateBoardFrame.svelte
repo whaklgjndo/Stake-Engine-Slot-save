@@ -6,9 +6,11 @@
 </script>
 
 <div class:ornate-board-frame={true} class:is-spinning={isSpinning}>
+	<div class="board-aura" aria-hidden="true"></div>
 	<img class="board-frame-art" src={frameSrc} alt={frameAlt} draggable="false" />
 	<div class="board-grid-window" aria-hidden="true">
 		<div class="board-grid-velvet"></div>
+		<div class="board-grid-sheen"></div>
 		<img class="board-grid-overlay" src={gridSrc} alt="" draggable="false" />
 		<div class="board-grid-content">
 			<slot />
@@ -24,6 +26,17 @@
 		width: 49.9%;
 		transform: translate(-50%, -50%);
 		filter: drop-shadow(0 24px 42px rgba(0, 0, 0, 0.46));
+	}
+
+	.board-aura {
+		position: absolute;
+		inset: 8% 7% 9%;
+		border-radius: 26px;
+		background:
+			radial-gradient(circle at 50% 0%, rgba(255, 214, 142, 0.24), transparent 36%),
+			radial-gradient(circle at 50% 100%, rgba(108, 203, 255, 0.18), transparent 34%);
+		filter: blur(22px);
+		pointer-events: none;
 	}
 
 	.board-frame-art {
@@ -50,6 +63,16 @@
 			radial-gradient(circle at 20% 22%, rgba(255, 154, 90, 0.2), transparent 34%),
 			radial-gradient(circle at 78% 20%, rgba(162, 198, 255, 0.18), transparent 34%),
 			linear-gradient(90deg, #6e1d11 0%, #892818 18%, #7b2a1a 39%, #6a2620 51%, #45587f 66%, #24375e 82%, #182b4b 100%);
+	}
+
+	.board-grid-sheen {
+		position: absolute;
+		inset: 0;
+		background:
+			linear-gradient(180deg, rgba(255,255,255,0.08), transparent 18%, transparent 78%, rgba(255,255,255,0.04)),
+			radial-gradient(circle at 50% 12%, rgba(255, 239, 198, 0.12), transparent 26%);
+		mix-blend-mode: screen;
+		pointer-events: none;
 	}
 
 	.board-grid-overlay {
