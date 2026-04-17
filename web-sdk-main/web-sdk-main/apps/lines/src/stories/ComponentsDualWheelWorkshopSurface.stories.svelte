@@ -3,11 +3,11 @@
 	import DualWheelWorkshopSurface from './components/DualWheelWorkshopSurface.svelte';
 
 	const { Story } = defineMeta({
-		title: 'PROTOTYPES/Dual Wheel Workshop Surface',
+		title: 'PROTOTYPES/Dual Wheel Workshop',
 		component: DualWheelWorkshopSurface,
 	});
 </script>
 
-<Story name="surface">
+<Story name="workshop">
 	<DualWheelWorkshopSurface />
 </Story>
