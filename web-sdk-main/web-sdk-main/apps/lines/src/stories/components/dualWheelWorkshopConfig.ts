@@ -29,6 +29,7 @@ export const RED_INNER_SEGMENTS = RED_INNER_WHEEL_VALUES;
 export const BLUE_WHEEL_SEGMENT_WEIGHTS = BLUE_WHEEL_WEIGHTS;
 export const RED_OUTER_SEGMENT_WEIGHTS = RED_OUTER_WHEEL_WEIGHTS;
 export const RED_INNER_SEGMENT_WEIGHTS = RED_INNER_WHEEL_WEIGHTS;
+
 type WheelProfileConfig = {
 	blueKeepChance: number;
 	redKeepChance: number;
@@ -45,11 +46,14 @@ export const LIVE_BASE_GAME_WHEEL_PROFILE = {
 	maxBluePerBoard: 2,
 	maxRedPerBoard: 1,
 } as const satisfies WheelProfileConfig;
+
 export const LIVE_BASE_GAME_BONUS_SEAL_WEIGHTS = [98840, 920, 190, 45, 5] as const;
+
 export const PREVIEW_BONUS_BUY_MULTIPLIERS = {
 	regular: 20.2,
 	super: 532,
 } as const;
+
 export const BONUS_ROUND_CONFIG: Record<
 	BonusMode,
 	{
@@ -89,12 +93,12 @@ export const BONUS_ROUND_CONFIG: Record<
 	},
 } as const;
 
-const crownAsset = new URL('../assets/symbol-crown.png', import.meta.url).href;
+const crownAsset = new URL('../assets/reference-fantasy/crown.svg', import.meta.url).href;
 const scepterAsset = new URL('../assets/symbol-scepter.png', import.meta.url).href;
 const wolfAsset = new URL('../assets/symbol-wolf.png', import.meta.url).href;
 const ankhAsset = new URL('../assets/symbol-ankh.png', import.meta.url).href;
-const helmetAsset = new URL('../assets/symbol-helmet.png', import.meta.url).href;
-const sunDiscAsset = new URL('../assets/symbol-sun-disc.png', import.meta.url).href;
+const helmetAsset = new URL('../assets/reference-fantasy/helmet.svg', import.meta.url).href;
+const sunDiscAsset = new URL('../assets/reference-fantasy/sun-disc.svg', import.meta.url).href;
 const axesAsset = new URL('../assets/symbol-axes.png', import.meta.url).href;
 const runeAAsset = new URL('../assets/symbol-rune-a.png', import.meta.url).href;
 const runeBAsset = new URL('../assets/symbol-rune-b.png', import.meta.url).href;
@@ -102,10 +106,15 @@ const runeCAsset = new URL('../assets/symbol-rune-c.png', import.meta.url).href;
 const runeDAsset = new URL('../assets/symbol-rune-d.png', import.meta.url).href;
 const runeEAsset = new URL('../assets/symbol-rune-e.png', import.meta.url).href;
 const runeFAsset = new URL('../assets/symbol-rune-f.png', import.meta.url).href;
-const scatterAsset = new URL('../assets/symbol-scatter.png', import.meta.url).href;
-const blueWheelSymbolAsset = new URL('../assets/blue-wheel-symbol.png', import.meta.url).href;
-const redDualWheelSymbolAsset = new URL('../assets/red-dual-wheel-symbol.png', import.meta.url)
-	.href;
+const scatterAsset = new URL('../assets/reference-fantasy/scatter.svg', import.meta.url).href;
+const blueWheelSymbolAsset = new URL(
+	'../assets/reference-fantasy/blue-wheel-symbol.svg',
+	import.meta.url,
+).href;
+const redDualWheelSymbolAsset = new URL(
+	'../assets/reference-fantasy/red-dual-wheel-symbol.svg',
+	import.meta.url,
+).href;
 
 export const regularSymbols: RegularSymbolId[] = [
 	'crown',
@@ -152,139 +161,139 @@ export const symbolMeta: Record<SymbolId, SymbolMeta> = {
 	crown: {
 		label: 'Crown',
 		short: 'CR',
-		flavor: 'gold symbol',
+		flavor: 'royal premium',
 		tier: 'gold',
-		background: 'linear-gradient(145deg,#6f4208,#b27613 48%,#f7d977)',
-		glow: 'rgba(255,211,112,.66)',
-		frame: '#ffe29f',
+		background: 'linear-gradient(145deg,#5f3210,#a86a1c 52%,#f2d28c)',
+		glow: 'rgba(255,214,132,.62)',
+		frame: '#f8e0a3',
 		kind: 'regular',
 	},
 	scepter: {
-		label: 'Scepter',
+		label: 'Royal Scepter',
 		short: 'SC',
-		flavor: 'silver symbol',
-		tier: 'silver',
-		background: 'linear-gradient(145deg,#253344,#4a617d 48%,#b1becd)',
-		glow: 'rgba(211,224,238,.44)',
-		frame: '#ecf2f7',
+		flavor: 'royal relic',
+		tier: 'gold',
+		background: 'linear-gradient(145deg,#5a3312,#986220 52%,#e7c57c)',
+		glow: 'rgba(255,220,150,.52)',
+		frame: '#f1d79b',
 		kind: 'regular',
 	},
 	wolf: {
-		label: 'Wolf',
+		label: 'Heraldic Wolf',
 		short: 'WF',
-		flavor: 'gold symbol',
+		flavor: 'crest premium',
 		tier: 'gold',
-		background: 'linear-gradient(145deg,#76490d,#b57416 48%,#edb85f)',
-		glow: 'rgba(248,210,140,.58)',
-		frame: '#f4d59c',
+		background: 'linear-gradient(145deg,#17304b,#274a74 52%,#c0d6f6)',
+		glow: 'rgba(122,187,255,.52)',
+		frame: '#e7f1ff',
 		kind: 'regular',
 	},
 	ankh: {
-		label: 'Ankh',
-		short: 'AK',
-		flavor: 'silver symbol',
+		label: 'Sanctum Sigil',
+		short: 'SG',
+		flavor: 'vault relic',
 		tier: 'silver',
-		background: 'linear-gradient(145deg,#243242,#51657d 48%,#aebdcb)',
-		glow: 'rgba(206,223,238,.46)',
-		frame: '#e9f0f6',
+		background: 'linear-gradient(145deg,#1d2638,#344868 52%,#c8d5ea)',
+		glow: 'rgba(196,220,255,.4)',
+		frame: '#edf3fb',
 		kind: 'regular',
 	},
 	helmet: {
-		label: 'Helmet',
+		label: 'Knight Helm',
 		short: 'HM',
-		flavor: 'silver symbol',
+		flavor: 'museum relic',
 		tier: 'silver',
-		background: 'linear-gradient(145deg,#263345,#4e6580 48%,#aebdcc)',
-		glow: 'rgba(204,220,236,.42)',
-		frame: '#e8eff5',
+		background: 'linear-gradient(145deg,#182436,#2a4265 52%,#b9ccea)',
+		glow: 'rgba(130,194,255,.42)',
+		frame: '#eaf2fb',
 		kind: 'regular',
 	},
 	sunDisc: {
-		label: 'Sun Disc',
+		label: 'Solar Seal',
 		short: 'SD',
-		flavor: 'gold symbol',
+		flavor: 'royal medallion',
 		tier: 'gold',
-		background: 'linear-gradient(145deg,#72470d,#b97816 48%,#f0c460)',
-		glow: 'rgba(248,205,110,.62)',
-		frame: '#f8dd9b',
+		background: 'linear-gradient(145deg,#693e10,#b9791d 52%,#f0cd74)',
+		glow: 'rgba(255,211,110,.6)',
+		frame: '#f8e19a',
 		kind: 'regular',
 	},
 	axes: {
-		label: 'Axes',
+		label: 'Twin Axes',
 		short: 'AX',
-		flavor: 'silver symbol',
+		flavor: 'armory relic',
 		tier: 'silver',
-		background: 'linear-gradient(145deg,#243241,#51657e 48%,#afbcc8)',
-		glow: 'rgba(205,220,235,.42)',
-		frame: '#e7edf3',
+		background: 'linear-gradient(145deg,#1a2434,#364868 52%,#c3cfdf)',
+		glow: 'rgba(166,210,255,.42)',
+		frame: '#e9eff8',
 		kind: 'regular',
 	},
 	runeA: {
-		label: 'Rune F',
-		short: 'RF',
-		flavor: 'wood symbol',
+		label: 'Rune Ember',
+		short: 'RE',
+		flavor: 'amber rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#5d3413,#824f20 48%,#b7783a)',
-		glow: 'rgba(218,159,92,.36)',
-		frame: '#d4965d',
+		background: 'linear-gradient(145deg,#553012,#824c1f 52%,#c17b40)',
+		glow: 'rgba(255,176,96,.34)',
+		frame: '#dc9c63',
 		kind: 'regular',
 	},
 	runeB: {
-		label: 'Rune O',
-		short: 'RO',
-		flavor: 'wood symbol',
+		label: 'Rune Tide',
+		short: 'RT',
+		flavor: 'azure rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#593210,#7d4a1c 48%,#aa6f34)',
-		glow: 'rgba(211,151,85,.34)',
-		frame: '#ca8f56',
+		background: 'linear-gradient(145deg,#24344a,#35557b 52%,#7cb2f1)',
+		glow: 'rgba(118,188,255,.3)',
+		frame: '#a8cbf7',
 		kind: 'regular',
 	},
 	runeC: {
-		label: 'Rune P',
-		short: 'RP',
-		flavor: 'wood symbol',
+		label: 'Rune Stone',
+		short: 'RS',
+		flavor: 'shield rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#5b3414,#865023 48%,#b6773b)',
-		glow: 'rgba(216,157,90,.34)',
-		frame: '#d19458',
+		background: 'linear-gradient(145deg,#583414,#845120 52%,#bf8a4b)',
+		glow: 'rgba(224,186,100,.3)',
+		frame: '#d5a15c',
 		kind: 'regular',
 	},
 	runeD: {
-		label: 'Rune S',
-		short: 'RS',
-		flavor: 'wood symbol',
+		label: 'Rune Gale',
+		short: 'RG',
+		flavor: 'pale rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#5b3515,#815022 48%,#ad7140)',
-		glow: 'rgba(212,154,93,.34)',
-		frame: '#cb8e57',
+		background: 'linear-gradient(145deg,#31334d,#565878 52%,#c4c8de)',
+		glow: 'rgba(216,222,240,.28)',
+		frame: '#d8dcef',
 		kind: 'regular',
 	},
 	runeE: {
-		label: 'Rune H',
-		short: 'RH',
-		flavor: 'wood symbol',
+		label: 'Rune Oath',
+		short: 'RO',
+		flavor: 'sanctum rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#553012,#7a481c 48%,#a96d36)',
-		glow: 'rgba(206,148,83,.32)',
-		frame: '#c5864f',
+		background: 'linear-gradient(145deg,#5b3414,#88511f 52%,#c69046)',
+		glow: 'rgba(255,216,111,.28)',
+		frame: '#e0ab5b',
 		kind: 'regular',
 	},
 	runeF: {
-		label: 'Rune X',
-		short: 'RX',
-		flavor: 'wood symbol',
+		label: 'Rune Night',
+		short: 'RN',
+		flavor: 'midnight rune',
 		tier: 'wood',
-		background: 'linear-gradient(145deg,#5d3416,#825024 48%,#aa6d39)',
-		glow: 'rgba(209,150,87,.34)',
-		frame: '#c98b52',
+		background: 'linear-gradient(145deg,#26364a,#3b5a7e 52%,#86b8ef)',
+		glow: 'rgba(118,188,255,.28)',
+		frame: '#a9cbf6',
 		kind: 'regular',
 	},
 	scatter: {
-		label: 'Scatter',
+		label: 'Throne Scatter',
 		short: 'SC',
-		flavor: 'scatter symbol',
+		flavor: 'scatter crest',
 		tier: 'bonus',
-		background: 'linear-gradient(145deg,#552308,#8f3810 48%,#f0b34a)',
+		background: 'linear-gradient(145deg,#5a2410,#923713 50%,#efb24c)',
 		glow: 'rgba(255,183,78,.72)',
 		frame: '#ffd590',
 		kind: 'bonus',
@@ -292,21 +301,21 @@ export const symbolMeta: Record<SymbolId, SymbolMeta> = {
 	blueWheel: {
 		label: 'Blue Wheel',
 		short: 'BW',
-		flavor: 'wild wheel',
+		flavor: 'moon wheel',
 		tier: 'wheel',
-		background: 'linear-gradient(145deg,#071430,#112658 55%,#1d4ec7)',
-		glow: 'rgba(68,129,255,.7)',
-		frame: '#c3d9ff',
+		background: 'linear-gradient(145deg,#081731,#16346a 55%,#2d6de0)',
+		glow: 'rgba(86,152,255,.72)',
+		frame: '#d2e3ff',
 		kind: 'wheel',
 	},
 	redWheel: {
 		label: 'Red Wheel',
 		short: 'RW',
-		flavor: 'wild wheel',
+		flavor: 'ember wheel',
 		tier: 'wheel',
-		background: 'linear-gradient(145deg,#300806,#5c1411 55%,#bb2a1b)',
-		glow: 'rgba(255,94,68,.72)',
-		frame: '#ffd8cc',
+		background: 'linear-gradient(145deg,#300b07,#621512 55%,#c53321)',
+		glow: 'rgba(255,104,76,.72)',
+		frame: '#ffd7cf',
 		kind: 'wheel',
 	},
 };
@@ -592,8 +601,10 @@ export const STAKE_APPROVAL_RTP_BAND = {
 	min: 0.9,
 	max: 0.98,
 } as const;
+
 export const DESIGN_RTP_TARGET = 0.95;
 export const PRODUCT_MAX_WIN_TARGET = 10000;
+
 export const BLUE_WHEEL_RANGE = minMax(BLUE_WHEEL_VALUES);
 export const RED_OUTER_WHEEL_RANGE = minMax(RED_OUTER_WHEEL_VALUES);
 export const RED_INNER_WHEEL_RANGE = minMax(RED_INNER_WHEEL_VALUES);
@@ -601,6 +612,7 @@ export const RED_FINAL_WHEEL_RANGE = {
 	min: RED_OUTER_WHEEL_RANGE.min * RED_INNER_WHEEL_RANGE.min,
 	max: RED_OUTER_WHEEL_RANGE.max * RED_INNER_WHEEL_RANGE.max,
 } as const;
+
 export const BASE_GAME_THEORETICAL_MAX_ROUND_MULTIPLIER = deriveBaseGameMaxRoundMultiplier({
 	baseMultiplier: highestFiveOfAKind,
 	blueValue: BLUE_WHEEL_RANGE.max,
