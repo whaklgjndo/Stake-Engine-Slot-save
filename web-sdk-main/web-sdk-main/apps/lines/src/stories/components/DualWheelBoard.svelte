@@ -488,11 +488,11 @@
 		position: relative;
 		display: grid;
 		place-items: center;
-		width: calc(var(--board-width) + 80px);
-		min-width: calc(var(--board-width) + 80px);
+		width: calc(var(--board-width) + 100px);
+		min-width: calc(var(--board-width) + 100px);
 		max-width: 100%;
 		margin: 0 auto;
-		padding: 38px 38px 34px;
+		padding: 60px 44px 56px;
 		border-radius: 6px;
 		overflow: visible;
 		/* Ornate gold frame — multi-layer border with embossed look */
@@ -545,9 +545,10 @@
 	/* ── Velvet backdrop (red left, blue right) ── */
 	.frame-velvet {
 		position: absolute;
-		inset: 28px;
+		/* Match the board area: top and bottom align with where cells begin */
+		inset: 36px 32px;
 		display: flex;
-		border-radius: 3px;
+		border-radius: 4px;
 		overflow: hidden;
 		z-index: -1;
 	}
@@ -555,34 +556,38 @@
 	.frame-velvet-red {
 		flex: 1;
 		background:
-			/* Velvet texture — subtle noise-like gradients */
-			radial-gradient(ellipse 80% 60% at 30% 25%, rgba(180, 70, 40, 0.4), transparent 50%),
-			radial-gradient(ellipse 60% 80% at 70% 70%, rgba(120, 30, 15, 0.3), transparent 50%),
-			linear-gradient(160deg,
-				rgb(140, 50, 30) 0%,
-				rgb(110, 35, 20) 30%,
-				rgb(85, 25, 15) 60%,
-				rgb(65, 18, 10) 100%
+			/* Velvet sheen — cross-light to simulate fabric */
+			radial-gradient(ellipse 90% 55% at 25% 20%, rgba(210, 90, 55, 0.5), transparent 55%),
+			radial-gradient(ellipse 60% 70% at 75% 80%, rgba(140, 35, 18, 0.35), transparent 50%),
+			radial-gradient(ellipse 40% 40% at 50% 50%, rgba(100, 28, 14, 0.25), transparent 70%),
+			linear-gradient(155deg,
+				rgb(165, 58, 34) 0%,
+				rgb(140, 44, 24) 25%,
+				rgb(115, 32, 16) 50%,
+				rgb(88, 22, 11) 75%,
+				rgb(68, 16, 8) 100%
 			);
 	}
 
 	.frame-velvet-blue {
 		flex: 1;
 		background:
-			radial-gradient(ellipse 80% 60% at 70% 25%, rgba(60, 100, 180, 0.35), transparent 50%),
-			radial-gradient(ellipse 60% 80% at 30% 70%, rgba(25, 50, 120, 0.3), transparent 50%),
-			linear-gradient(200deg,
-				rgb(50, 75, 140) 0%,
-				rgb(35, 55, 110) 30%,
-				rgb(22, 38, 80) 60%,
-				rgb(14, 24, 55) 100%
+			radial-gradient(ellipse 90% 55% at 75% 20%, rgba(70, 130, 220, 0.5), transparent 55%),
+			radial-gradient(ellipse 60% 70% at 25% 80%, rgba(24, 52, 130, 0.35), transparent 50%),
+			radial-gradient(ellipse 40% 40% at 50% 50%, rgba(18, 36, 90, 0.25), transparent 70%),
+			linear-gradient(205deg,
+				rgb(48, 82, 158) 0%,
+				rgb(34, 60, 122) 25%,
+				rgb(22, 42, 94) 50%,
+				rgb(14, 28, 68) 75%,
+				rgb(9, 18, 48) 100%
 			);
 	}
 
 	/* ── Crown clasp at top center ── */
 	.frame-crown {
 		position: absolute;
-		top: -22px;
+		top: -36px;
 		left: 50%;
 		transform: translateX(-50%);
 		width: 64px;
@@ -625,72 +630,103 @@
 			0 1px 4px rgba(0, 0, 0, 0.4);
 	}
 
-	/* ── Scroll bar caps (top & bottom) ── */
+	/* ── Scroll bar cylinders (top & bottom) ── */
 	.frame-scroll {
 		position: absolute;
-		left: -16px;
-		right: -16px;
-		height: 24px;
+		left: -24px;
+		right: -24px;
+		height: 48px;
 		z-index: 4;
-		border-radius: 12px;
+		border-radius: 24px;
+		/* 3-D cylindrical look: bright highlight on top, shadow beneath */
 		background:
 			linear-gradient(180deg,
-				rgb(185, 155, 80) 0%,
-				rgb(150, 120, 55) 20%,
-				rgb(100, 75, 30) 50%,
-				rgb(130, 100, 45) 80%,
-				rgb(170, 140, 70) 100%
+				rgba(240, 210, 140, 0.55) 0%,
+				rgba(240, 210, 140, 0.0) 18%,
+				transparent 35%,
+				transparent 60%,
+				rgba(20, 12, 2, 0.28) 82%,
+				rgba(20, 12, 2, 0.45) 100%
+			),
+			linear-gradient(180deg,
+				rgb(210, 175, 90) 0%,
+				rgb(175, 138, 58) 18%,
+				rgb(130, 98, 34) 42%,
+				rgb(105, 76, 26) 58%,
+				rgb(130, 100, 38) 78%,
+				rgb(175, 140, 62) 92%,
+				rgb(205, 168, 82) 100%
 			);
-		border: 2px solid rgb(80, 60, 22);
+		border: 2px solid rgb(72, 52, 16);
 		box-shadow:
-			inset 0 2px 4px rgba(230, 200, 120, 0.35),
-			inset 0 -2px 4px rgba(30, 20, 5, 0.4),
-			0 4px 14px rgba(0, 0, 0, 0.5);
+			/* Cylinder highlight */
+			inset 0 3px 0 rgba(255, 240, 180, 0.45),
+			inset 0 5px 10px rgba(240, 210, 130, 0.18),
+			/* Cylinder underside shadow */
+			inset 0 -3px 0 rgba(20, 10, 2, 0.5),
+			/* Drop shadow */
+			0 6px 20px rgba(0, 0, 0, 0.55),
+			0 2px 6px rgba(0, 0, 0, 0.35);
 	}
 
-	.frame-scroll-top { top: -14px; }
-	.frame-scroll-bottom { bottom: -14px; }
+	.frame-scroll-top { top: -28px; }
+	.frame-scroll-bottom { bottom: -28px; }
 
-	/* Pointed end caps on scroll bars */
+	/* Spherical gold knob end caps */
 	.frame-scroll-cap {
 		position: absolute;
 		top: 50%;
 		transform: translateY(-50%);
-		width: 20px;
-		height: 20px;
+		width: 58px;
+		height: 58px;
 		border-radius: 50%;
 		background:
-			radial-gradient(circle at 40% 35%,
-				rgb(210, 180, 100),
-				rgb(150, 120, 50) 50%,
-				rgb(100, 75, 30) 100%
+			/* Specular highlight */
+			radial-gradient(circle at 38% 30%,
+				rgba(255, 248, 200, 0.9) 0%,
+				rgba(240, 210, 130, 0.6) 18%,
+				transparent 40%
+			),
+			/* Main sphere gradient */
+			radial-gradient(circle at 42% 38%,
+				rgb(240, 210, 130) 0%,
+				rgb(200, 165, 75) 28%,
+				rgb(155, 118, 40) 55%,
+				rgb(110, 80, 25) 80%,
+				rgb(72, 52, 16) 100%
 			);
-		border: 2px solid rgb(75, 55, 20);
+		border: 2px solid rgb(62, 44, 12);
 		box-shadow:
-			inset 0 1px 2px rgba(240, 210, 130, 0.4),
-			0 2px 6px rgba(0, 0, 0, 0.4);
+			/* Inner bevel highlight */
+			inset 0 2px 4px rgba(255, 248, 200, 0.4),
+			inset 2px 0 4px rgba(255, 240, 160, 0.18),
+			/* Inner shadow bottom-right */
+			inset -2px -3px 6px rgba(20, 10, 2, 0.5),
+			/* Drop shadow */
+			0 4px 14px rgba(0, 0, 0, 0.55),
+			0 1px 4px rgba(0, 0, 0, 0.35);
 	}
 
-	.frame-scroll-cap-left { left: -10px; }
-	.frame-scroll-cap-right { right: -10px; }
+	.frame-scroll-cap-left { left: -29px; }
+	.frame-scroll-cap-right { right: -29px; }
 
-	/* Etched pattern on scroll bars */
+	/* Rope-groove etching on scroll cylinders */
 	.frame-scroll::before {
 		content: '';
 		position: absolute;
-		inset: 4px 30px;
-		border-radius: 8px;
+		inset: 8px 40px;
+		border-radius: 16px;
 		background:
 			repeating-linear-gradient(
 				90deg,
 				transparent,
-				transparent 12px,
-				rgba(80, 60, 20, 0.25) 12px,
-				rgba(80, 60, 20, 0.25) 13px,
-				transparent 13px,
-				transparent 16px,
-				rgba(200, 170, 90, 0.12) 16px,
-				rgba(200, 170, 90, 0.12) 17px
+				transparent 10px,
+				rgba(60, 42, 10, 0.22) 10px,
+				rgba(60, 42, 10, 0.22) 11px,
+				transparent 11px,
+				transparent 14px,
+				rgba(220, 185, 95, 0.10) 14px,
+				rgba(220, 185, 95, 0.10) 15px
 			);
 	}
 
@@ -764,16 +800,28 @@
 		width: fit-content;
 		margin: 0 auto;
 		padding: 6px;
-		isolation: isolate;
 		border-radius: 4px;
-		background: rgba(4, 4, 6, 0.9);
 		overflow: visible;
+		/* Velvet gradient directly on the board — red left, blue right */
+		/* Copying the exact gradient from ArtBoardRuntime for colour accuracy */
+		background:
+			radial-gradient(circle at 20% 22%, rgba(255, 154, 90, 0.18), transparent 34%),
+			radial-gradient(circle at 78% 20%, rgba(162, 198, 255, 0.16), transparent 34%),
+			linear-gradient(90deg,
+				#6e1d11 0%,
+				#892818 18%,
+				#7b2a1a 39%,
+				#6a2620 51%,
+				#45587f 66%,
+				#24375e 82%,
+				#182b4b 100%
+			);
 		/* Gold inner border around the cell area */
 		box-shadow:
-			inset 0 0 0 3px rgb(140, 110, 45),
-			inset 0 0 0 5px rgb(60, 45, 15),
-			inset 0 4px 12px rgba(0, 0, 0, 0.5),
-			inset 0 -4px 12px rgba(0, 0, 0, 0.4);
+			inset 0 0 0 3px rgb(160, 128, 48),
+			inset 0 0 0 5px rgb(80, 58, 18),
+			inset 0 4px 16px rgba(0, 0, 0, 0.35),
+			inset 0 -4px 16px rgba(0, 0, 0, 0.25);
 	}
 
 	.board::before {
@@ -830,18 +878,16 @@
 		place-items: center;
 		width: 104px;
 		height: 104px;
-		border-radius: 12px;
-		background:
-			radial-gradient(circle at 50% 30%, rgba(20, 22, 30, 0.5), rgba(4, 5, 10, 0.96) 75%);
+		border-radius: 8px;
+		/* Fully transparent — velvet from .board shows through each cell */
+		background: transparent;
 		/* Gold divider border — ornamental grid look */
-		border: 3px solid rgb(160, 130, 55);
+		border: 2px solid rgb(180, 145, 55);
 		box-shadow:
-			/* Inner recess shadow */
-			inset 0 3px 8px rgba(0, 0, 0, 0.7),
-			inset 0 -1px 3px rgba(0, 0, 0, 0.3),
-			/* Gold bevel on border */
-			0 0 0 1px rgb(80, 60, 22),
-			0 0 0 2px rgba(200, 170, 90, 0.15);
+			/* Very subtle inner outline for depth */
+			inset 0 0 0 1px rgba(240, 210, 130, 0.25),
+			/* Outer gold separator line between cells */
+			0 0 0 1px rgb(90, 68, 20);
 		overflow: visible;
 		transition:
 			transform 0.22s ease,
@@ -856,8 +902,9 @@
 		position: absolute;
 		inset: 0;
 		border-radius: 6px;
+		/* Very subtle top sheen only */
 		background:
-			linear-gradient(180deg, rgba(255, 255, 255, 0.02), transparent 30%, rgba(0, 0, 0, 0.12));
+			linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, transparent 30%);
 		pointer-events: none;
 	}
 

@@ -996,18 +996,14 @@
 		<div class="top-bar-brand">
 			<h1>Dual Wheel Reels</h1>
 		</div>
-		<div class="top-bar-stats">
+		<div class="top-bar-session">
 			<div class="stat-pill">
-				<span>Balance</span>
-				<strong>GC {formatValue(liveBalance)}</strong>
+				<span>Net</span>
+				<strong class:metric-positive={sessionNet > 0} class:metric-negative={sessionNet < 0}>{sessionNet >= 0 ? '+' : ''}GC {formatValue(sessionNet)}</strong>
 			</div>
 			<div class="stat-pill">
-				<span>Bet</span>
-				<strong>GC {formatValue(liveBetOptions[liveBetIndex])}</strong>
-			</div>
-			<div class="stat-pill">
-				<span>Win</span>
-				<strong class:metric-positive={lastPaidWin > 0}>GC {formatValue(lastPaidWin)}</strong>
+				<span>Spins</span>
+				<strong>{spinCounter}</strong>
 			</div>
 		</div>
 	</header>
@@ -1070,6 +1066,23 @@
 			wheelMessage={activeWheelMessageState}
 		/>
 
+		<!-- Permanent dual wheel display -->
+		<div class="wheel-display-bar" aria-hidden="true">
+			<div class="wheel-display-orb">
+				<div class="wheel-display-half wheel-display-half-blue">
+					<img class="wheel-display-icon" src={wheelSymbolAssets.blueWheel} alt="" />
+					<span class="wheel-display-label">Blue Wheel</span>
+					<em class="wheel-display-range">2× – 25×</em>
+				</div>
+				<div class="wheel-display-seam"></div>
+				<div class="wheel-display-half wheel-display-half-red">
+					<img class="wheel-display-icon" src={wheelSymbolAssets.redWheel} alt="" />
+					<span class="wheel-display-label">Red Wheel</span>
+					<em class="wheel-display-range">5× – 250×</em>
+				</div>
+			</div>
+		</div>
+
 		{#if showTotalWin}
 			<div
 				class:total-win-overlay={true}
@@ -1099,14 +1112,13 @@
 
 	<!-- Controls -->
 	<footer class="game-controls">
+		<!-- Left: Balance + Bonus Buy -->
 		<div class="controls-left">
-			<div class="bet-stepper">
-				<button class="ctrl-button" on:click={() => updateLiveBet(-1)} disabled={roundState !== 'idle' || liveBetIndex === 0}>-</button>
-				<div class="bet-display">
-					<span>Bet</span>
-					<strong>GC {formatValue(liveBetOptions[liveBetIndex])}</strong>
+			<div class="hud-stat-group">
+				<div class="hud-stat">
+					<span class="hud-stat-label">Balance</span>
+					<strong class="hud-stat-value">GC {formatValue(liveBalance)}</strong>
 				</div>
-				<button class="ctrl-button" on:click={() => updateLiveBet(1)} disabled={roundState !== 'idle' || liveBetIndex === liveBetOptions.length - 1}>+</button>
 			</div>
 			<div class="bonus-buy-row">
 				<button class="bonus-buy-button bonus-buy-button-regular" on:click={() => void handleBonusBuy('regular')} disabled={!canBuyRegular}>
@@ -1120,6 +1132,7 @@
 			</div>
 		</div>
 
+		<!-- Center: Spin button (floats up above bar) -->
 		<div class="controls-center">
 			<button
 				class:spin-button={true}
@@ -1129,23 +1142,35 @@
 				disabled={(!canSpin && !canStop && !canSkip) || (canSkip && resolveSkipRequested)}
 			>
 				{#if canStop}
-					{stopRequested ? 'STOP' : 'STOP'}
+					STOP
 				{:else if canSkip}
 					{resolveSkipRequested ? '...' : 'SKIP'}
 				{:else}
 					SPIN
 				{/if}
 			</button>
-			<p class="status-text">{statusLabel}</p>
+			<div class="hud-win-display">
+				<span class="hud-stat-label">Win</span>
+				<strong class="hud-stat-value hud-win-value" class:metric-positive={lastPaidWin > 0}>GC {formatValue(lastPaidWin)}</strong>
+			</div>
 		</div>
 
+		<!-- Right: Bet size stepper + Quick Spin + Auto Spin -->
 		<div class="controls-right">
+			<div class="bet-stepper">
+				<button class="ctrl-button" on:click={() => updateLiveBet(-1)} disabled={roundState !== 'idle' || liveBetIndex === 0}>-</button>
+				<div class="bet-display">
+					<span>Bet Size</span>
+					<strong>GC {formatValue(liveBetOptions[liveBetIndex])}</strong>
+				</div>
+				<button class="ctrl-button" on:click={() => updateLiveBet(1)} disabled={roundState !== 'idle' || liveBetIndex === liveBetOptions.length - 1}>+</button>
+			</div>
 			<div class="toggle-row">
-				<button class:toggle-button={true} class:is-active={quickSpinEnabled} on:click={toggleQuickSpin} disabled={roundState !== 'idle' || autoplayEnabled}>
-					Quick
+				<button class:toggle-button={true} class:toggle-pill={true} class:is-active={quickSpinEnabled} on:click={toggleQuickSpin} disabled={roundState !== 'idle' || autoplayEnabled}>
+					Quick Spin
 				</button>
 				<button class:toggle-button={true} class:is-active={autoplayEnabled} on:click={toggleAutoplay} disabled={!canSpin && !autoplayEnabled}>
-					{autoplayEnabled ? 'Stop' : 'Auto'}
+					{autoplayEnabled ? 'Stop Auto' : 'Auto Spin'}
 				</button>
 			</div>
 			{#if !autoplayEnabled}
@@ -1268,10 +1293,11 @@
 		grid-template-rows: auto 1fr auto;
 		min-height: 100vh;
 		color: #eff7ff;
+		/* Richer dark base for the castle art to sit on */
 		background:
-			radial-gradient(circle at 18% 12%, rgba(85, 145, 230, 0.18), transparent 20%),
-			radial-gradient(circle at 82% 14%, rgba(181, 84, 48, 0.16), transparent 18%),
-			linear-gradient(180deg, #0d1722 0%, #08111a 56%, #060d15 100%);
+			radial-gradient(circle at 16% 10%, rgba(200, 140, 60, 0.08), transparent 22%),
+			radial-gradient(circle at 84% 10%, rgba(60, 110, 200, 0.08), transparent 22%),
+			linear-gradient(180deg, #0a1018 0%, #07111a 50%, #04090e 100%);
 	}
 
 	/* ── Backdrop ─────────────────────────────────────────── */
@@ -1306,23 +1332,24 @@
 		align-items: center;
 		justify-content: space-between;
 		gap: 16px;
-		padding: 14px 24px;
-		background: linear-gradient(180deg, rgba(10, 20, 30, 0.92), rgba(8, 16, 24, 0.88));
-		border-bottom: 1px solid rgba(145, 181, 214, 0.12);
+		padding: 10px 24px;
+		background: linear-gradient(180deg, rgba(6, 14, 22, 0.95), rgba(8, 16, 24, 0.88));
+		border-bottom: 1px solid rgba(145, 181, 214, 0.10);
 		backdrop-filter: blur(10px);
 		z-index: 2;
 	}
 
 	.top-bar-brand h1 {
 		margin: 0;
-		font-size: clamp(1.2rem, 2.2vw, 1.8rem);
+		font-size: clamp(1rem, 1.8vw, 1.5rem);
 		letter-spacing: -0.04em;
 		line-height: 1;
+		color: rgba(220, 200, 140, 0.9);
 	}
 
-	.top-bar-stats {
+	.top-bar-session {
 		display: flex;
-		gap: 10px;
+		gap: 8px;
 	}
 
 	.stat-pill {
@@ -1350,6 +1377,7 @@
 	}
 
 	.metric-positive { color: #86f2c5; }
+	.metric-negative { color: #ff8a7a; }
 
 	/* ── Game Stage ───────────────────────────────────────── */
 
@@ -1357,8 +1385,10 @@
 		position: relative;
 		display: grid;
 		place-content: center;
-		padding: 24px;
+		justify-items: center;
+		padding: 16px 24px 0;
 		z-index: 1;
+		overflow: visible;
 	}
 
 	.stage-tone-medium { box-shadow: inset 0 0 80px rgba(93, 185, 255, 0.06); }
@@ -1442,62 +1472,135 @@
 
 	.game-controls {
 		display: grid;
-		grid-template-columns: minmax(200px, 0.9fr) auto minmax(200px, 0.9fr);
-		gap: 16px;
+		grid-template-columns: minmax(190px, 0.9fr) auto minmax(220px, 0.9fr);
+		gap: 12px;
 		align-items: center;
-		padding: 16px 24px;
-		background: linear-gradient(180deg, rgba(8, 16, 24, 0.94), rgba(6, 12, 18, 0.98));
-		border-top: 1px solid rgba(145, 181, 214, 0.12);
+		/* padding-top: 0 allows spin button to overlap up into stage */
+		padding: 0 28px 16px;
+		background:
+			linear-gradient(180deg,
+				rgba(12, 20, 10, 0.96) 0%,
+				rgba(10, 16, 8, 0.98) 100%
+			);
+		border-top: 2px solid rgb(110, 85, 28);
+		box-shadow: 0 -2px 0 rgb(45, 34, 10), 0 -4px 20px rgba(0, 0, 0, 0.5);
 		backdrop-filter: blur(10px);
 		z-index: 2;
+		overflow: visible;
 	}
 
 	.controls-center {
 		display: grid;
 		justify-items: center;
-		gap: 8px;
+		gap: 6px;
+		/* Allow spin button to overflow upward */
+		overflow: visible;
+		position: relative;
+		z-index: 3;
+		/* Pull the whole center column up so button floats above the bar */
+		margin-top: -36px;
 	}
 
 	.spin-button {
-		width: 96px;
-		height: 96px;
+		width: 112px;
+		height: 112px;
 		border-radius: 50%;
-		background: linear-gradient(180deg, #7acfff, #3699f6 54%, #1a73d8 100%);
-		color: #04121d;
+		/* Dark metallic gold-bronze — matches medieval theme */
+		background:
+			radial-gradient(circle at 42% 36%,
+				rgba(220, 190, 110, 0.22) 0%,
+				transparent 46%
+			),
+			linear-gradient(160deg,
+				rgb(58, 48, 26) 0%,
+				rgb(44, 36, 18) 30%,
+				rgb(32, 26, 12) 60%,
+				rgb(22, 18, 8) 100%
+			);
+		color: rgb(230, 200, 120);
 		font-weight: 900;
-		font-size: 1.1rem;
-		letter-spacing: 0.08em;
-		border: 2px solid rgba(255, 255, 255, 0.2);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 8px 24px rgba(15, 84, 151, 0.4), 0 0 0 4px rgba(54, 153, 246, 0.15);
+		font-size: 1.15rem;
+		letter-spacing: 0.12em;
+		border: none;
+		/* Layered gold ring border */
+		box-shadow:
+			inset 0 2px 4px rgba(240, 210, 130, 0.28),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.55),
+			/* Gold ring 1 */
+			0 0 0 3px rgb(160, 128, 44),
+			/* Dark gap */
+			0 0 0 5px rgb(30, 22, 8),
+			/* Gold ring 2 */
+			0 0 0 7px rgb(130, 100, 34),
+			/* Outer dark */
+			0 0 0 9px rgb(18, 14, 6),
+			/* Drop shadow */
+			0 10px 28px rgba(0, 0, 0, 0.6),
+			0 4px 10px rgba(0, 0, 0, 0.4);
 		cursor: pointer;
-		transition: transform 160ms ease, box-shadow 160ms ease;
+		transition: transform 140ms ease, box-shadow 140ms ease, filter 140ms ease;
 	}
 
-	.spin-button:hover:enabled { transform: scale(1.05); box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.36), 0 12px 32px rgba(15, 84, 151, 0.5), 0 0 0 6px rgba(54, 153, 246, 0.2); }
-	.spin-button:active:enabled { transform: scale(0.95); }
+	.spin-button:hover:enabled {
+		transform: scale(1.05);
+		filter: brightness(1.12);
+		box-shadow:
+			inset 0 2px 4px rgba(240, 210, 130, 0.34),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.55),
+			0 0 0 3px rgb(190, 155, 58),
+			0 0 0 5px rgb(30, 22, 8),
+			0 0 0 7px rgb(155, 120, 44),
+			0 0 0 9px rgb(18, 14, 6),
+			0 0 18px rgba(200, 165, 70, 0.25),
+			0 12px 34px rgba(0, 0, 0, 0.65);
+	}
+	.spin-button:active:enabled { transform: scale(0.96); }
 	.spin-button:disabled { opacity: 0.45; cursor: not-allowed; }
 
+	/* STOP — warm amber version of the same metallic look */
 	.spin-button-stop {
-		background: linear-gradient(180deg, #ffc484, #f98f54 56%, #e55a2f 100%);
-		color: #1b0903;
-		border-color: rgba(255, 190, 148, 0.4);
-		box-shadow: inset 0 1px 0 rgba(255, 231, 213, 0.42), 0 8px 24px rgba(155, 73, 27, 0.4), 0 0 0 4px rgba(249, 143, 84, 0.15);
+		background:
+			radial-gradient(circle at 42% 36%, rgba(255, 200, 130, 0.22) 0%, transparent 46%),
+			linear-gradient(160deg, rgb(70, 36, 14) 0%, rgb(52, 26, 10) 35%, rgb(36, 18, 6) 70%, rgb(22, 11, 4) 100%);
+		color: rgb(255, 210, 150);
+		box-shadow:
+			inset 0 2px 4px rgba(255, 210, 140, 0.24),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.55),
+			0 0 0 3px rgb(180, 100, 32),
+			0 0 0 5px rgb(30, 16, 4),
+			0 0 0 7px rgb(140, 76, 22),
+			0 0 0 9px rgb(18, 10, 2),
+			0 10px 28px rgba(0, 0, 0, 0.6);
 	}
 
+	/* SKIP — cool blue-grey version */
 	.spin-button-skip {
-		background: linear-gradient(180deg, #c2e8ff, #6fc4ff 56%, #37a2f5 100%);
-		color: #04121d;
-		border-color: rgba(192, 231, 255, 0.44);
-		box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.44), 0 8px 24px rgba(47, 122, 184, 0.3), 0 0 0 4px rgba(111, 196, 255, 0.15);
+		background:
+			radial-gradient(circle at 42% 36%, rgba(160, 210, 255, 0.18) 0%, transparent 46%),
+			linear-gradient(160deg, rgb(28, 44, 62) 0%, rgb(18, 32, 48) 35%, rgb(12, 22, 34) 70%, rgb(8, 14, 22) 100%);
+		color: rgb(160, 210, 255);
+		box-shadow:
+			inset 0 2px 4px rgba(160, 210, 255, 0.22),
+			inset 0 -2px 4px rgba(0, 0, 0, 0.55),
+			0 0 0 3px rgb(54, 98, 148),
+			0 0 0 5px rgb(10, 18, 28),
+			0 0 0 7px rgb(40, 72, 112),
+			0 0 0 9px rgb(6, 12, 20),
+			0 10px 28px rgba(0, 0, 0, 0.6);
 	}
 
-	.status-text {
-		margin: 0;
-		font-size: 0.76rem;
-		font-weight: 700;
-		letter-spacing: 0.1em;
-		text-transform: uppercase;
-		color: rgba(175, 208, 238, 0.68);
+	.status-text { display: none; }
+
+	/* WIN display below spin button */
+	.hud-win-display {
+		display: grid;
+		gap: 3px;
+		text-align: center;
+	}
+
+	.hud-win-value {
+		min-width: 120px;
+		text-align: center;
 	}
 
 	/* ── Left / Right Controls ────────────────────────────── */
@@ -1505,25 +1608,67 @@
 	.controls-left, .controls-right {
 		display: grid;
 		gap: 10px;
+		align-self: end;
+		padding-bottom: 4px;
 	}
+
+	/* HUD stat group (Balance + Win) */
+	.hud-stat-group {
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+
+	.hud-stat {
+		display: grid;
+		gap: 3px;
+	}
+
+	.hud-stat-label {
+		font-size: 0.6rem;
+		font-weight: 800;
+		letter-spacing: 0.2em;
+		text-transform: uppercase;
+		color: rgba(200, 175, 110, 0.75);
+	}
+
+	.hud-stat-value {
+		display: block;
+		padding: 7px 14px;
+		border-radius: 8px;
+		/* Sunken dark display field */
+		background: rgba(4, 8, 4, 0.88);
+		border: 1px solid rgba(120, 95, 28, 0.55);
+		box-shadow:
+			inset 0 2px 6px rgba(0, 0, 0, 0.5),
+			inset 0 -1px 0 rgba(180, 145, 50, 0.1);
+		font-size: 1rem;
+		font-weight: 900;
+		letter-spacing: -0.01em;
+		color: rgb(235, 205, 120);
+		min-width: 130px;
+	}
+
+	.hud-stat-value.metric-positive { color: #86f2c5; }
 
 	.bet-stepper {
 		display: grid;
-		grid-template-columns: 44px minmax(0, 1fr) 44px;
-		gap: 8px;
+		grid-template-columns: 40px minmax(0, 1fr) 40px;
+		gap: 6px;
 		align-items: center;
 	}
 
 	.bet-display {
-		padding: 8px 12px;
-		border-radius: 12px;
-		background: rgba(6, 14, 22, 0.84);
-		border: 1px solid rgba(255, 255, 255, 0.08);
+		padding: 7px 10px;
+		border-radius: 8px;
+		background: rgba(4, 8, 4, 0.88);
+		border: 1px solid rgba(120, 95, 28, 0.55);
+		box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.5), inset 0 -1px 0 rgba(180, 145, 50, 0.1);
 		text-align: center;
 	}
 
-	.bet-display span { display: block; font-size: 0.66rem; font-weight: 800; letter-spacing: 0.14em; text-transform: uppercase; color: rgba(171, 205, 236, 0.68); }
-	.bet-display strong { display: block; margin-top: 2px; font-size: 0.95rem; font-weight: 800; }
+	.bet-display span { display: block; font-size: 0.6rem; font-weight: 800; letter-spacing: 0.2em; text-transform: uppercase; color: rgba(200, 175, 110, 0.75); }
+	.bet-display strong { display: block; margin-top: 2px; font-size: 0.92rem; font-weight: 900; color: rgb(230, 200, 115); }
 
 	.ctrl-button {
 		padding: 10px;
@@ -1574,20 +1719,33 @@
 	}
 
 	.toggle-button {
-		padding: 10px 12px;
-		border-radius: 12px;
+		padding: 9px 12px;
+		border-radius: 10px;
 		border: 1px solid rgba(255, 255, 255, 0.08);
 		background: rgba(16, 28, 41, 0.92);
 		color: #edf7ff;
 		font-weight: 700;
-		font-size: 0.82rem;
+		font-size: 0.78rem;
 		cursor: pointer;
 		transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+		white-space: nowrap;
 	}
 
 	.toggle-button:hover:enabled { transform: translateY(-1px); }
 	.toggle-button:disabled { opacity: 0.45; cursor: not-allowed; }
-	.toggle-button.is-active { border-color: rgba(102, 198, 255, 0.44); background: rgba(26, 70, 116, 0.72); }
+	.toggle-button.is-active { border-color: rgba(102, 198, 255, 0.44); background: rgba(26, 70, 116, 0.72); color: #a8e4ff; }
+
+	/* Pill style for quick-spin toggle */
+	.toggle-pill {
+		border-radius: 999px;
+		padding: 9px 16px;
+	}
+
+	.toggle-pill.is-active {
+		background: rgba(26, 70, 116, 0.84);
+		border-color: rgba(102, 198, 255, 0.5);
+		box-shadow: inset 0 0 12px rgba(84, 178, 255, 0.12), 0 0 0 1px rgba(102, 198, 255, 0.2);
+	}
 
 	.autoplay-select {
 		width: 100%;
@@ -1754,6 +1912,100 @@
 		color: rgba(202, 223, 243, 0.76);
 	}
 
+	/* ── Dual Wheel Display Bar ───────────────────────────── */
+
+	.wheel-display-bar {
+		display: flex;
+		justify-content: center;
+		align-items: flex-end;
+		padding: 4px 0 0;
+		pointer-events: none;
+	}
+
+	.wheel-display-orb {
+		position: relative;
+		display: flex;
+		width: 260px;
+		height: 96px;
+		border-radius: 130px 130px 0 0;
+		overflow: hidden;
+		border: 2px solid rgba(180, 150, 80, 0.4);
+		border-bottom: none;
+		box-shadow:
+			0 -6px 28px rgba(0, 0, 0, 0.45),
+			inset 0 4px 16px rgba(0, 0, 0, 0.3);
+	}
+
+	.wheel-display-half {
+		flex: 1;
+		display: grid;
+		place-items: center;
+		padding: 12px 8px 0;
+		gap: 2px;
+		grid-template-rows: 1fr auto auto;
+	}
+
+	.wheel-display-half-blue {
+		background:
+			radial-gradient(ellipse 120% 80% at 30% 40%, rgba(70, 140, 255, 0.18), transparent 60%),
+			linear-gradient(160deg,
+				rgba(28, 66, 140, 0.96) 0%,
+				rgba(16, 40, 90, 0.98) 60%,
+				rgba(10, 24, 58, 1) 100%
+			);
+	}
+
+	.wheel-display-half-red {
+		background:
+			radial-gradient(ellipse 120% 80% at 70% 40%, rgba(255, 100, 60, 0.16), transparent 60%),
+			linear-gradient(200deg,
+				rgba(140, 40, 22, 0.96) 0%,
+				rgba(88, 22, 12, 0.98) 60%,
+				rgba(54, 12, 6, 1) 100%
+			);
+	}
+
+	.wheel-display-seam {
+		width: 2px;
+		align-self: stretch;
+		background: linear-gradient(180deg,
+			rgba(200, 170, 90, 0.6),
+			rgba(140, 110, 40, 0.4) 50%,
+			rgba(200, 170, 90, 0.4)
+		);
+		flex-shrink: 0;
+	}
+
+	.wheel-display-icon {
+		display: block;
+		width: 52px;
+		height: 52px;
+		object-fit: contain;
+		opacity: 0.88;
+		filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.5));
+	}
+
+	.wheel-display-label {
+		display: block;
+		font-size: 0.58rem;
+		font-weight: 800;
+		letter-spacing: 0.14em;
+		text-transform: uppercase;
+		color: rgba(200, 226, 255, 0.62);
+		text-align: center;
+	}
+
+	.wheel-display-range {
+		display: block;
+		font-size: 0.64rem;
+		font-weight: 900;
+		font-style: normal;
+		letter-spacing: -0.01em;
+		color: rgba(235, 215, 150, 0.82);
+		text-align: center;
+		padding-bottom: 6px;
+	}
+
 	/* ── Animations ───────────────────────────────────────── */
 
 	@keyframes featureBannerEnter {
@@ -1779,7 +2031,17 @@
 			gap: 12px;
 		}
 
-		.controls-center { order: -1; }
+		.controls-center {
+			order: -1;
+			margin-top: 0;
+		}
+
+		.controls-left, .controls-right {
+			align-self: auto;
+			padding-bottom: 0;
+		}
+
+		.hud-stat-group { justify-content: center; }
 
 		.top-bar {
 			flex-direction: column;
@@ -1793,5 +2055,7 @@
 		.feature-banner-metrics { justify-content: start; }
 
 		.bonus-buy-row { grid-template-columns: 1fr; }
+
+		.wheel-display-orb { width: 200px; height: 76px; }
 	}
 </style>
